@@ -1,0 +1,3348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050a13">
+<meta name="description" content="平行板电容器数字孪生实验平台：参数可调、极板可拖动，实时计算电容、场强与能量，并附 C–d 曲线、数据记录、微创手术微位移传感与作业答卷。">
+<title>平行板电容器 · 数字孪生实验平台</title>
+<style>
+/* =========================================================
+   平行板电容器 · 数字孪生实验平台
+   Single-file physics lab / dark scientific instrument UI
+   ========================================================= */
+
+:root{
+  --bg:#050a13;
+  --bg-2:#07101d;
+  --panel:rgba(12,24,42,.88);
+  --panel-2:rgba(9,18,32,.94);
+  --panel-3:rgba(255,255,255,.025);
+  --line:rgba(126,184,240,.13);
+  --line-strong:rgba(126,205,255,.24);
+  --text:#e9f4ff;
+  --muted:#849ab6;
+  --dim:#536a86;
+  --cyan:#4fe3ff;
+  --cyan-2:#1eb8dc;
+  --cyan-soft:rgba(79,227,255,.12);
+  --amber:#ffb454;
+  --amber-soft:rgba(255,180,84,.12);
+  --green:#4ce0a1;
+  --pink:#ff708d;
+  --violet:#9d9bff;
+  --mono:"Cascadia Code","Cascadia Mono","Consolas","SFMono-Regular",monospace;
+  --sans:"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;
+  --serif:"Songti SC","STSong","SimSun",Georgia,serif;
+  --radius:18px;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:92px}
+body{
+  margin:0;
+  min-width:320px;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(900px 520px at 8% -8%, rgba(24,130,170,.20), transparent 68%),
+    radial-gradient(1000px 650px at 94% 8%, rgba(92,66,160,.14), transparent 65%),
+    radial-gradient(900px 700px at 52% 110%, rgba(160,93,30,.10), transparent 70%),
+    linear-gradient(180deg,#050a13 0%,#060c16 52%,#050a12 100%);
+}
+body::after{
+  content:"";
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(100,170,230,.032) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(100,170,230,.032) 1px,transparent 1px);
+  background-size:52px 52px;
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 25%,#000 0%,transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 25%,#000 0%,transparent 80%);
+}
+::selection{background:rgba(79,227,255,.25);color:#fff}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit}
+button{color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible{
+  outline:2px solid var(--cyan);
+  outline-offset:3px;
+}
+img,svg,canvas{display:block}
+h1,h2,h3,p{margin:0}
+em,i{font-style:normal}
+sub{font-size:.68em;line-height:0}
+[hidden]{display:none!important}
+
+/* ---------------- top bar ---------------- */
+.topbar{
+  position:sticky;top:0;z-index:80;
+  height:66px;
+  display:flex;align-items:center;gap:24px;
+  padding:0 clamp(16px,3vw,40px);
+  background:rgba(5,10,19,.76);
+  border-bottom:1px solid rgba(126,184,240,.10);
+  backdrop-filter:blur(20px) saturate(130%);
+  -webkit-backdrop-filter:blur(20px) saturate(130%);
+}
+.brand{display:flex;align-items:center;gap:11px;min-width:max-content}
+.brand-mark{
+  width:39px;height:39px;border-radius:12px;
+  display:grid;place-items:center;
+  background:linear-gradient(145deg,rgba(79,227,255,.16),rgba(79,227,255,.03));
+  border:1px solid rgba(79,227,255,.28);
+  box-shadow:inset 0 1px rgba(255,255,255,.08),0 0 24px rgba(34,184,220,.12);
+}
+.brand-mark svg{width:24px;height:24px}
+.brand-copy{display:flex;flex-direction:column;line-height:1.2}
+.brand-copy strong{font-size:15px;font-weight:600;letter-spacing:.04em}
+.brand-copy small{
+  margin-top:4px;font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.15em;color:var(--dim);text-transform:uppercase;
+}
+.brand-copy small i{font-style:normal;color:var(--cyan);margin:0 3px}
+
+.nav{display:flex;align-items:center;gap:2px;margin-left:auto;margin-right:auto}
+.nav-link{
+  position:relative;
+  display:flex;align-items:center;gap:7px;
+  padding:9px 13px;border-radius:9px;
+  color:var(--muted);font-size:12px;
+  transition:color .2s,background .2s;
+}
+.nav-link span{
+  font-family:var(--mono);font-size:9px;color:var(--dim);
+  transition:color .2s;
+}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,.035)}
+.nav-link.active{color:var(--cyan);background:rgba(79,227,255,.06)}
+.nav-link.active span{color:var(--cyan)}
+.nav-link.active::after{
+  content:"";position:absolute;left:50%;bottom:3px;
+  width:16px;height:1px;transform:translateX(-50%);
+  background:var(--cyan);box-shadow:0 0 8px var(--cyan);
+}
+.top-actions{display:flex;align-items:center;gap:10px;min-width:max-content}
+.live-pill{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+  color:#a7f3c9;text-transform:uppercase;
+  padding:6px 9px;border:1px solid rgba(76,224,161,.18);
+  border-radius:999px;background:rgba(76,224,161,.055);
+}
+.live-pill i{
+  width:5px;height:5px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 3px rgba(76,224,161,.1),0 0 9px var(--green);
+  animation:blink 2.4s ease-in-out infinite;
+}
+.top-btn{
+  display:flex;align-items:center;gap:7px;
+  border:1px solid var(--line);background:rgba(255,255,255,.025);
+  color:var(--muted);border-radius:9px;padding:7px 10px;font-size:11px;
+  transition:all .2s;
+}
+.top-btn:hover{color:var(--text);border-color:var(--line-strong);background:rgba(255,255,255,.05)}
+.top-btn svg{width:13px;height:13px;opacity:.8}
+.student-chip{
+  display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;
+  border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.025);
+}
+.avatar{
+  width:27px;height:27px;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,#1c4b66,#10263b);
+  border:1px solid rgba(79,227,255,.28);
+  color:var(--cyan);font-size:11px;font-weight:600;
+}
+.student-chip>span:last-child{display:flex;flex-direction:column;line-height:1.2}
+.student-chip b{font-size:10.5px;font-weight:500}
+.student-chip small{font-family:var(--mono);font-size:7.5px;color:var(--dim);letter-spacing:.06em;margin-top:2px}
+
+/* ---------------- layout ---------------- */
+.wrap{
+  width:100%;max-width:1500px;margin:0 auto;
+  padding:0 clamp(16px,3vw,40px) 28px;
+}
+.section{scroll-margin-top:92px;padding-top:32px}
+.section-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:36px;
+  padding:2px 2px 18px;
+}
+.kicker{
+  display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+  color:var(--cyan);text-transform:uppercase;
+}
+.kicker::before{
+  content:"";width:20px;height:1px;background:currentColor;
+  box-shadow:0 0 8px rgba(79,227,255,.5);
+}
+.section-head h1,.section-head h2{
+  margin-top:7px;
+  font-size:clamp(25px,2.3vw,35px);
+  line-height:1.18;font-weight:580;letter-spacing:-.035em;
+}
+.section-head h1 span,.section-head h2 span{
+  margin-left:12px;color:var(--muted);font-weight:400;
+  font-size:.52em;letter-spacing:.01em;white-space:nowrap;
+}
+.section-desc{
+  max-width:430px;color:var(--muted);font-size:12px;line-height:1.8;
+  text-align:right;padding-bottom:3px;
+}
+.section-desc b{color:#bcd1e8;font-weight:500}
+
+.card{
+  position:relative;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:
+    linear-gradient(152deg,rgba(16,31,53,.92),rgba(8,16,29,.95) 68%);
+  box-shadow:
+    0 24px 60px -26px rgba(0,0,0,.72),
+    inset 0 1px rgba(255,255,255,.035);
+  overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;top:0;left:18px;right:18px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(79,227,255,.24),rgba(255,180,84,.14),transparent);
+  opacity:.8;pointer-events:none;
+}
+.card-head{
+  position:relative;z-index:2;
+  min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:0 18px;border-bottom:1px solid rgba(126,184,240,.08);
+}
+.card-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:500;letter-spacing:.03em;color:#dcecff;
+}
+.card-title em{
+  margin-left:2px;font-family:var(--mono);font-size:7.5px;
+  letter-spacing:.16em;color:var(--dim);font-weight:400;
+}
+.eyebrow-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 0 4px rgba(79,227,255,.07),0 0 8px rgba(79,227,255,.8);
+}
+.micro-hint{
+  font-size:9.5px;color:var(--dim);letter-spacing:.01em;white-space:nowrap;
+}
+.micro-hint kbd{
+  font-family:var(--sans);font-size:9px;color:#9cb2ca;
+  border:1px solid rgba(126,184,240,.18);border-radius:4px;
+  padding:1px 4px;background:rgba(255,255,255,.03);
+}
+.micro-hint span{color:#3f5268;margin:0 3px}
+.icon-btn{
+  width:27px;height:27px;display:grid;place-items:center;
+  border-radius:7px;border:1px solid var(--line);
+  background:rgba(255,255,255,.025);color:var(--muted);
+  transition:all .2s;
+}
+.icon-btn:hover{color:var(--cyan);border-color:rgba(79,227,255,.3);background:rgba(79,227,255,.06)}
+.icon-btn svg{width:13px;height:13px}
+.text-btn{
+  border:0;background:none;padding:3px 0;
+  font-size:10px;color:var(--dim);transition:color .2s;
+}
+.text-btn:hover{color:var(--cyan)}
+
+/* ---------------- twin section ---------------- */
+.twin-grid{
+  display:grid;grid-template-columns:minmax(0,1fr) 402px;
+  gap:16px;align-items:stretch;
+}
+.stage-card{display:flex;flex-direction:column;min-height:612px}
+.stage-tools{display:flex;align-items:center;gap:10px}
+.stage-wrap{
+  position:relative;flex:1;min-height:492px;
+  background:
+    radial-gradient(60% 72% at 50% 48%,rgba(20,82,110,.14),transparent 72%),
+    linear-gradient(180deg,rgba(5,12,22,.05),rgba(4,9,17,.35));
+}
+#stage{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:default}
+.stage-topline{
+  position:absolute;top:14px;left:16px;right:16px;z-index:3;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  pointer-events:none;
+}
+.mode-badge,.material-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 9px;border-radius:999px;
+  font-size:9.5px;letter-spacing:.04em;
+  border:1px solid rgba(126,184,240,.14);
+  background:rgba(6,14,25,.66);backdrop-filter:blur(10px);
+  color:#a9c2db;
+}
+.mode-badge i{
+  width:5px;height:5px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 7px rgba(255,180,84,.9);
+}
+.mode-badge.is-voltage i{background:var(--cyan);box-shadow:0 0 7px rgba(79,227,255,.9)}
+.material-badge{color:#81d9c4;border-color:rgba(76,224,161,.15)}
+.stage-hint{
+  position:absolute;left:50%;top:14px;transform:translateX(-50%);
+  z-index:3;padding:5px 10px;border-radius:999px;
+  font-size:9.5px;color:#8ca6c1;background:rgba(6,14,25,.62);
+  border:1px solid rgba(126,184,240,.1);pointer-events:none;
+  backdrop-filter:blur(8px);transition:opacity .3s;
+}
+.stage-hud{
+  position:absolute;left:16px;right:16px;bottom:14px;z-index:3;
+  display:flex;align-items:stretch;gap:0;width:max-content;max-width:calc(100% - 32px);
+  border:1px solid rgba(126,184,240,.13);border-radius:11px;
+  background:rgba(6,14,25,.72);backdrop-filter:blur(14px);
+  box-shadow:0 14px 36px rgba(0,0,0,.22);
+  pointer-events:none;overflow:hidden;
+}
+.stage-hud>div{
+  display:flex;align-items:baseline;gap:5px;
+  padding:8px 12px;min-width:104px;
+}
+.stage-hud>div.divider{min-width:1px;width:1px;padding:0;background:rgba(126,184,240,.11)}
+.stage-hud span{font-size:8.5px;color:var(--dim);letter-spacing:.05em;margin-right:2px}
+.stage-hud b{font-family:var(--mono);font-size:14px;font-weight:500;color:#eefaff;letter-spacing:-.03em}
+.stage-hud i{font-size:8.5px;color:var(--dim)}
+.stage-tip{
+  position:absolute;right:16px;bottom:61px;z-index:3;
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;
+  color:#40546b;pointer-events:none;
+}
+.stage-foot{
+  min-height:40px;display:flex;align-items:center;gap:22px;
+  padding:0 18px;border-top:1px solid rgba(126,184,240,.07);
+  font-size:9px;color:var(--dim);
+}
+.stage-foot span{display:flex;align-items:center;gap:6px}
+.legend-plus,.legend-minus{
+  width:14px;height:14px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--mono);font-size:10px;font-style:normal;
+}
+.legend-plus{color:var(--amber);background:rgba(255,180,84,.09);border:1px solid rgba(255,180,84,.18)}
+.legend-minus{color:var(--cyan);background:rgba(79,227,255,.08);border:1px solid rgba(79,227,255,.17)}
+.legend-field{
+  width:16px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent);
+  box-shadow:0 0 5px rgba(79,227,255,.5);
+}
+
+/* control card */
+.control-card{display:flex;flex-direction:column;min-height:612px}
+.control-body{padding:13px 16px 14px;display:flex;flex-direction:column;gap:9px}
+.mode-switch{
+  display:grid;grid-template-columns:1fr 1fr;gap:3px;
+  padding:3px;border-radius:10px;
+  background:rgba(255,255,255,.025);border:1px solid rgba(126,184,240,.09);
+}
+.mode-btn{
+  border:0;border-radius:7px;padding:6px 8px;
+  background:transparent;color:var(--muted);font-size:10.5px;
+  transition:all .2s;
+}
+.mode-btn:hover{color:var(--text)}
+.mode-btn.active{
+  background:linear-gradient(135deg,rgba(79,227,255,.14),rgba(79,227,255,.04));
+  color:#dffbff;box-shadow:inset 0 0 0 1px rgba(79,227,255,.2);
+}
+.mode-note{
+  font-size:9px;line-height:1.5;color:var(--dim);
+  min-height:14px;margin-top:-3px;padding-left:2px;
+}
+.mode-note b{color:#93aac2;font-weight:500}
+.slider-block{display:flex;flex-direction:column;gap:4px}
+.slider-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.slider-head label,.slider-head .label{font-size:10.5px;color:#9db3cb;letter-spacing:.01em}
+.slider-head label i,.slider-head .label i{
+  font-family:var(--serif);font-size:12px;color:var(--cyan);margin-left:2px;
+}
+.slider-val{
+  display:flex;align-items:baseline;gap:3px;
+  font-family:var(--mono);font-size:8.5px;color:var(--dim);
+}
+.slider-val b{font-size:12px;color:#e6f6ff;font-weight:500;letter-spacing:-.02em}
+.range{
+  -webkit-appearance:none;appearance:none;
+  display:block;width:100%;height:15px;margin:0;padding:0;
+  background:transparent;cursor:pointer;
+}
+.range::-webkit-slider-runnable-track{
+  height:4px;border-radius:99px;
+  background:linear-gradient(90deg,var(--range-color,var(--cyan)) 0 var(--p,50%),rgba(126,184,240,.16) var(--p,50%) 100%);
+  box-shadow:0 0 10px rgba(79,227,255,.05);
+}
+.range::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:12px;height:12px;margin-top:-4px;border-radius:50%;
+  background:#eafcff;border:2px solid var(--range-color,var(--cyan));
+  box-shadow:0 0 0 4px rgba(79,227,255,.07),0 0 12px rgba(79,227,255,.4);
+  transition:box-shadow .15s,transform .15s;
+}
+.range:hover::-webkit-slider-thumb{box-shadow:0 0 0 5px rgba(79,227,255,.1),0 0 16px rgba(79,227,255,.55)}
+.range::-moz-range-track{
+  height:4px;border-radius:99px;background:rgba(126,184,240,.16);
+}
+.range::-moz-range-progress{
+  height:4px;border-radius:99px;background:var(--range-color,var(--cyan));
+}
+.range::-moz-range-thumb{
+  width:11px;height:11px;border:2px solid var(--range-color,var(--cyan));
+  border-radius:50%;background:#eafcff;box-shadow:0 0 8px rgba(79,227,255,.45);
+}
+.range-amber{--range-color:var(--amber)}
+.range-thin{height:12px;margin-top:1px}
+.range-thin::-webkit-slider-runnable-track{height:2px}
+.range-thin::-webkit-slider-thumb{width:9px;height:9px;margin-top:-3.5px;border-width:1.5px}
+.material-block{display:flex;flex-direction:column;gap:5px;margin-top:1px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{
+  border:1px solid rgba(126,184,240,.12);border-radius:6px;
+  background:rgba(255,255,255,.02);color:#829bb5;
+  font-size:9px;padding:3px 7px;transition:all .18s;
+}
+.chip:hover{color:#d9efff;border-color:rgba(126,184,240,.25)}
+.chip.active{
+  color:#c9fff4;border-color:rgba(76,224,161,.3);
+  background:rgba(76,224,161,.07);
+  box-shadow:inset 0 0 0 1px rgba(76,224,161,.05);
+}
+.cap-readout{
+  position:relative;margin-top:2px;padding:10px 12px 9px;border-radius:12px;
+  background:
+    radial-gradient(120% 140% at 0% 0%,rgba(79,227,255,.11),transparent 55%),
+    rgba(79,227,255,.025);
+  border:1px solid rgba(79,227,255,.16);
+  overflow:hidden;
+}
+.cap-readout::after{
+  content:"";position:absolute;right:-30px;top:-50px;width:120px;height:120px;
+  border-radius:50%;border:1px solid rgba(79,227,255,.08);
+  box-shadow:0 0 0 16px rgba(79,227,255,.02),0 0 0 32px rgba(79,227,255,.015);
+  pointer-events:none;
+}
+.cap-readout-head{display:flex;justify-content:space-between;align-items:center}
+.cap-readout-head>span:first-child{font-size:9px;color:#8da8c3;letter-spacing:.06em}
+.cap-readout-head em{
+  font-family:var(--mono);font-size:7px;letter-spacing:.13em;color:var(--dim);margin-left:5px;
+}
+.live-dot{display:flex;align-items:center;gap:4px;font-size:7.5px;color:#6b859f;letter-spacing:.06em}
+.live-dot i{width:3px;height:3px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.cap-main{display:flex;align-items:baseline;gap:7px;margin-top:-1px}
+.cap-main b{
+  font-family:var(--mono);font-size:34px;line-height:1.16;font-weight:500;
+  letter-spacing:-.065em;color:#f0fdff;
+  text-shadow:0 0 26px rgba(79,227,255,.24);
+}
+.cap-main span{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:.03em}
+.cap-formula{
+  font-family:var(--mono);font-size:8px;color:#6c8ba7;
+  letter-spacing:.01em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.metric{
+  border:1px solid rgba(126,184,240,.09);border-radius:8px;
+  background:rgba(255,255,255,.022);padding:5px 8px 4px;
+}
+.metric span{display:block;font-size:8px;color:var(--dim);letter-spacing:.04em}
+.metric>div{display:flex;align-items:baseline;gap:3px;margin-top:-1px}
+.metric b{font-family:var(--mono);font-size:13px;font-weight:500;color:#dcefff;letter-spacing:-.03em}
+.metric i{font-size:7.5px;color:#607a94}
+.sigma-line{
+  display:flex;align-items:baseline;gap:4px;
+  padding:0 2px;font-size:8px;color:var(--dim);
+}
+.sigma-line b{font-family:var(--mono);font-size:9.5px;font-weight:500;color:#9eb7cf}
+.sigma-line i{font-size:7.5px}
+
+/* ---------------- charts ---------------- */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-card{display:flex;flex-direction:column}
+.chart-badge{
+  font-family:var(--mono);font-size:8px;letter-spacing:.08em;
+  color:#77dcca;border:1px solid rgba(76,224,161,.16);
+  background:rgba(76,224,161,.05);border-radius:5px;padding:2px 6px;
+}
+.chart-canvas{height:228px;padding:8px 10px 0}
+.chart-canvas canvas{width:100%;height:100%}
+.chart-foot{
+  min-height:34px;display:flex;align-items:center;gap:8px;
+  padding:0 16px;border-top:1px solid rgba(126,184,240,.06);
+  font-size:8.5px;color:var(--dim);line-height:1.45;
+}
+.chart-foot b{color:#a6bed5;font-weight:500}
+.chart-foot .mini-line{
+  width:13px;height:1px;background:var(--cyan);box-shadow:0 0 5px rgba(79,227,255,.55);
+  flex:0 0 auto;
+}
+.chart-foot .mini-line.amber{background:var(--amber);box-shadow:0 0 5px rgba(255,180,84,.45)}
+.analysis-bottom{
+  display:grid;grid-template-columns:minmax(0,1.56fr) minmax(320px,.84fr);
+  gap:16px;margin-top:16px;
+}
+.data-card{display:flex;flex-direction:column;min-height:238px}
+.data-actions{display:flex;align-items:center;gap:6px}
+.small-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  border:1px solid rgba(126,184,240,.12);border-radius:6px;
+  background:rgba(255,255,255,.025);color:#879fb9;
+  font-size:8.5px;padding:4px 7px;transition:all .18s;white-space:nowrap;
+}
+.small-btn:hover{color:var(--text);border-color:rgba(126,184,240,.26);background:rgba(255,255,255,.05)}
+.small-btn.primary{
+  color:#d6fdff;border-color:rgba(79,227,255,.24);
+  background:rgba(79,227,255,.08);
+}
+.small-btn.primary:hover{background:rgba(79,227,255,.14);box-shadow:0 0 18px rgba(79,227,255,.08)}
+.small-btn svg{width:10px;height:10px}
+.table-wrap{position:relative;flex:1;overflow:auto;padding:0 12px;max-height:188px}
+.table-wrap::-webkit-scrollbar{width:5px;height:5px}
+.table-wrap::-webkit-scrollbar-thumb{background:rgba(126,184,240,.16);border-radius:99px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+thead th{
+  position:sticky;top:0;z-index:2;
+  background:#0b1729;
+  font-size:7.5px;font-weight:400;color:var(--dim);letter-spacing:.04em;
+  text-align:left;padding:7px 5px;border-bottom:1px solid rgba(126,184,240,.08);
+}
+tbody td{
+  padding:6px 5px;border-bottom:1px solid rgba(126,184,240,.05);
+  font-family:var(--mono);font-size:9px;color:#b6cbe0;white-space:nowrap;
+}
+tbody td:first-child{color:#4e647b}
+tbody td .row-dot{display:inline-block;width:3px;height:3px;border-radius:50%;background:var(--cyan);margin-right:5px;vertical-align:1px;opacity:.6}
+.table-empty{
+  position:absolute;inset:30px 12px 0;display:flex;align-items:center;justify-content:center;
+  gap:8px;border:1px dashed rgba(126,184,240,.12);border-radius:8px;
+  font-size:9px;color:#4f657c;text-align:center;padding:12px;
+}
+.table-empty svg{width:15px;height:15px;opacity:.5;flex:0 0 auto}
+.table-empty b{display:block;color:#6e879f;font-weight:400;margin-bottom:1px}
+.table-foot{
+  display:flex;justify-content:space-between;gap:12px;
+  padding:7px 16px 9px;border-top:1px solid rgba(126,184,240,.06);
+  font-size:7.5px;color:#41566c;
+}
+.table-foot span:first-child{color:#738ba3}
+.verify-card{display:flex;flex-direction:column}
+.verify-body{padding:11px 14px 13px;display:flex;flex-direction:column;gap:8px}
+.verify-body>p{font-size:9px;line-height:1.5;color:var(--dim)}
+.verify-buttons{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.verify-btn{
+  display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  border:1px solid rgba(126,184,240,.11);border-radius:7px;
+  background:rgba(255,255,255,.022);padding:6px 8px;text-align:left;
+  transition:all .18s;
+}
+.verify-btn:hover{border-color:rgba(79,227,255,.22);background:rgba(79,227,255,.055)}
+.verify-btn b{font-family:var(--mono);font-size:10px;color:#cfe8fa;font-weight:500}
+.verify-btn span{font-size:7.5px;color:#5e7790}
+.verify-msg{
+  margin-top:auto;padding:7px 9px;border-radius:6px;
+  background:rgba(255,180,84,.045);border:1px solid rgba(255,180,84,.12);
+  font-size:8.5px;line-height:1.55;color:#9e917d;min-height:45px;
+}
+.verify-msg b{color:#eec487;font-weight:500}
+.verify-msg .ratio{color:var(--amber);font-family:var(--mono)}
+
+/* ---------------- sensor ---------------- */
+.sensor-grid{
+  display:grid;grid-template-columns:minmax(0,1.34fr) minmax(360px,.8fr);
+  gap:16px;align-items:stretch;
+}
+.sensor-visual-card{display:flex;flex-direction:column}
+.sensor-visual{
+  position:relative;flex:1;min-height:360px;
+  background:
+    radial-gradient(70% 80% at 55% 30%,rgba(22,90,115,.2),transparent 70%),
+    linear-gradient(180deg,#071321 0%,#050d18 100%);
+  overflow:hidden;
+}
+#sensorScene{width:100%;height:100%;min-height:360px}
+.sensor-hud{
+  position:absolute;z-index:2;pointer-events:none;
+  border:1px solid rgba(126,184,240,.13);border-radius:9px;
+  background:rgba(5,13,23,.72);backdrop-filter:blur(12px);
+  box-shadow:0 14px 34px rgba(0,0,0,.22);
+}
+.hud-tl{top:14px;left:14px;padding:6px 9px;display:flex;flex-direction:column;gap:1px}
+.hud-tl span{font-family:var(--mono);font-size:6.5px;letter-spacing:.15em;color:#4e8090}
+.hud-tl b{font-size:9.5px;font-weight:500;color:#a8d7e4}
+.hud-tr{top:14px;right:14px;padding:7px 10px;min-width:118px}
+.hud-tr>span{font-size:7px;color:#5e7d93;letter-spacing:.05em}
+.hud-tr>div{display:flex;align-items:baseline;gap:4px;margin:1px 0}
+.hud-tr b{font-family:var(--mono);font-size:17px;font-weight:500;color:#c8fff2;letter-spacing:-.04em}
+.hud-tr i{font-size:7.5px;color:#6c8e9e}
+.hud-tr small{font-size:7px;color:#5d788a}
+.hud-tr small em{font-family:var(--mono);font-size:8px;color:#a8c6d2}
+.hud-bl{bottom:14px;left:14px;padding:5px 8px;display:flex;align-items:center;gap:5px;font-size:7.5px;color:#6d8a9f}
+.signal-dot{width:4px;height:4px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.sensor-chart-wrap{
+  border-top:1px solid rgba(126,184,240,.08);
+  padding:8px 14px 8px;min-height:142px;
+}
+.sensor-chart-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:1px}
+.sensor-chart-head span:first-child{font-size:9px;color:#9bb1c7}
+.sensor-chart-head span:last-child{font-family:var(--mono);font-size:7px;color:#4e657b}
+#sensorChart{width:100%;height:107px}
+.sensor-control-card{display:flex;flex-direction:column}
+.sensor-control-card .control-body{gap:8px;padding:12px 15px 14px}
+.sensor-control-card .slider-block{gap:3px}
+.switch-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:5px 0;border-top:1px solid rgba(126,184,240,.06);
+}
+.switch-row:first-of-type{border-top:0;padding-top:7px}
+.switch-copy{display:flex;flex-direction:column;gap:1px}
+.switch-copy b{font-size:9.5px;font-weight:400;color:#a6bcd2}
+.switch-copy span{font-size:7.5px;color:#50677d}
+.switch{position:relative;width:30px;height:16px;flex:0 0 auto}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+.switch .track{
+  position:absolute;inset:0;border-radius:99px;background:rgba(126,184,240,.14);
+  border:1px solid rgba(126,184,240,.12);transition:all .2s;
+}
+.switch .track::after{
+  content:"";position:absolute;width:10px;height:10px;left:2px;top:2px;
+  border-radius:50%;background:#8198af;transition:all .2s;
+}
+.switch input:checked + .track{background:rgba(79,227,255,.18);border-color:rgba(79,227,255,.3)}
+.switch input:checked + .track::after{transform:translateX(14px);background:var(--cyan);box-shadow:0 0 8px rgba(79,227,255,.55)}
+.sensor-metrics{grid-template-columns:1fr 1fr;gap:5px;margin-top:1px}
+.sensor-metrics .metric b{font-size:12px}
+.sensor-note{
+  font-size:7.5px;line-height:1.5;color:#4f667c;
+  padding:2px 2px 0;border-top:1px dashed rgba(126,184,240,.08);
+}
+.sensor-note b{color:#7e99b1;font-weight:500}
+.signal-chain{
+  display:grid;grid-template-columns:210px 1fr;gap:24px;
+  margin-top:16px;padding:18px 20px;align-items:center;
+}
+.signal-intro .kicker{font-size:7.5px}
+.signal-intro h3{font-size:14px;font-weight:500;margin-top:4px}
+.signal-intro p{font-family:var(--mono);font-size:8px;color:#4f6a82;margin-top:3px}
+.chain-steps{display:flex;align-items:center;gap:7px;min-width:0}
+.chain-step{
+  flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;
+  padding:7px 9px;border:1px solid rgba(126,184,240,.09);border-radius:7px;
+  background:rgba(255,255,255,.018);
+}
+.chain-step>span{font-family:var(--mono);font-size:6.5px;color:#456077;letter-spacing:.08em}
+.chain-step b{font-size:9px;font-weight:400;color:#a9c0d6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chain-step small{font-family:var(--mono);font-size:7px;color:#546e85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chain-step.accent{border-color:rgba(255,180,84,.18);background:rgba(255,180,84,.045)}
+.chain-step.accent b{color:#e7c28d}
+.chain-arrow{font-size:10px;color:#3b5269;flex:0 0 auto}
+
+/* ---------------- answer sheet ---------------- */
+.answers-head{align-items:center}
+.answer-actions{display:flex;gap:8px;align-items:center}
+.action-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid rgba(126,184,240,.16);border-radius:8px;
+  background:rgba(255,255,255,.025);color:#acc4da;
+  font-size:10px;padding:7px 11px;transition:all .2s;
+}
+.action-btn:hover{border-color:rgba(79,227,255,.28);color:#e0fbff;background:rgba(79,227,255,.06)}
+.action-btn.primary{background:rgba(79,227,255,.09);border-color:rgba(79,227,255,.25);color:#d7fbff}
+.action-btn svg{width:12px;height:12px;opacity:.8}
+.answer-sheet{
+  position:relative;
+  color:#1b2635;
+  background:
+    linear-gradient(90deg,rgba(150,120,70,.035) 1px,transparent 1px),
+    linear-gradient(rgba(150,120,70,.03) 1px,transparent 1px),
+    linear-gradient(155deg,#fbfaf5,#f4f1e8);
+  background-size:32px 32px,32px 32px,auto;
+  border:1px solid rgba(255,255,255,.4);
+  border-radius:14px;
+  padding:30px 34px 22px;
+  box-shadow:0 46px 100px -30px rgba(0,0,0,.7),0 0 0 1px rgba(150,130,90,.16);
+  overflow:hidden;
+}
+.answer-sheet::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,#b88a4d 0 22%,#23384f 22% 78%,#b88a4d 78% 100%);
+  opacity:.7;
+}
+.answer-sheet::after{
+  content:"C = ε₀εᵣS / d";
+  position:absolute;right:-18px;bottom:58px;
+  font-family:var(--serif);font-size:64px;color:rgba(37,56,78,.035);
+  transform:rotate(-7deg);pointer-events:none;letter-spacing:.02em;
+}
+.paper-head{
+  display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
+  padding-bottom:17px;border-bottom:2px solid #1c2d42;
+}
+.paper-title>p{
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.16em;
+  color:#8a7454;text-transform:uppercase;
+}
+.paper-title h2{
+  margin-top:5px;font-family:var(--serif);font-size:27px;line-height:1.2;
+  font-weight:600;letter-spacing:.03em;color:#15253a;
+}
+.paper-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.paper-meta label{font-size:10px;color:#6b665b;display:flex;align-items:center;gap:5px}
+.paper-meta input{
+  width:92px;border:0;border-bottom:1px solid #b6ad9a;background:transparent;
+  color:#1d2d40;font-family:var(--serif);font-size:12px;padding:0 2px 2px;
+  border-radius:0;outline:none;
+}
+.paper-meta input:focus{border-bottom-color:#8d6a36}
+.paper-meta input#studentId{width:108px;font-family:var(--mono);font-size:10.5px}
+.paper-tag{
+  font-family:var(--mono);font-size:7px;letter-spacing:.08em;
+  color:#596d5d;border:1px solid #b8c3b1;background:#edf1e9;
+  padding:3px 6px;border-radius:3px;
+}
+.paper-q{
+  display:grid;grid-template-columns:40px minmax(0,1fr);gap:16px;
+  padding:19px 0 18px;border-bottom:1px dashed #c8c0ae;position:relative;
+}
+.paper-q:last-of-type{border-bottom:0}
+.q-no{
+  width:31px;height:31px;border:1px solid #b79a6a;border-radius:50%;
+  display:grid;place-items:center;
+  font-family:var(--mono);font-size:9px;color:#8d6a36;
+  margin-top:2px;
+}
+.q-body{min-width:0}
+.q-body h3{
+  display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+  font-size:15.5px;line-height:1.4;font-weight:600;color:#182a40;margin-bottom:7px;
+}
+.q-body h3>span{
+  font-family:var(--mono);font-size:7px;font-weight:400;color:#938b7c;
+  letter-spacing:.04em;text-transform:uppercase;
+}
+.q-body p{font-size:12.2px;line-height:1.85;color:#35404e;text-align:justify}
+.q-body p b{color:#172a41;font-weight:600}
+.q-body p .hl{background:linear-gradient(transparent 58%,rgba(216,180,108,.35) 58%);padding:0 1px}
+.copy-btn{
+  margin-left:auto;border:1px solid #c8c0b0;background:transparent;
+  border-radius:4px;font-size:8px;color:#777064;padding:2px 6px;
+  align-self:center;transition:all .2s;
+}
+.copy-btn:hover{color:#263b52;border-color:#8f9eaa;background:#f0eee6}
+.formula{
+  margin:10px 0 9px;padding:9px 13px;
+  border-left:3px solid #b48b50;background:rgba(231,227,214,.65);
+  font-family:var(--serif);font-size:17px;line-height:1.5;color:#1a2a3d;
+  text-align:center;letter-spacing:.01em;
+}
+.formula sub{font-size:.62em}
+.formula .eq{color:#9a723d;margin:0 .35em}
+.feature-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin:9px 0 10px;
+}
+.feature-grid>div{
+  border:1px solid #d6cfbf;background:rgba(255,255,255,.42);
+  border-radius:4px;padding:5px 7px;display:flex;flex-direction:column;gap:1px;
+}
+.feature-grid b{font-size:9px;font-weight:600;color:#2b3d51}
+.feature-grid span{font-size:8px;line-height:1.45;color:#766f62}
+.paper-callout{
+  margin-top:8px;padding:8px 10px;border:1px dashed #c4b99f;background:rgba(236,228,207,.45);
+  border-radius:4px;font-size:10.5px;line-height:1.7;color:#4b4d4c;
+}
+.paper-callout b{color:#7d5e32;margin-right:5px}
+.demo-script{margin-top:7px;font-size:10px;line-height:1.7;color:#555b5e}
+.demo-script b{color:#33465a}
+.demo-script span{color:#8a6a3e;font-family:var(--mono);font-size:8px;margin-right:3px}
+.mini-table{
+  margin:8px 0 9px;border:1px solid #d2cabb;border-radius:4px;overflow:hidden;
+}
+.mini-table>div{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+.mini-table>div>span{
+  padding:4px 8px;font-family:var(--mono);font-size:9px;
+  border-top:1px solid #e0d9ca;color:#3a4858;
+}
+.mini-table>div:first-child>span{
+  border-top:0;background:#e9e4d7;font-family:var(--sans);font-size:8px;
+  color:#766f62;letter-spacing:.03em;
+}
+.mini-table .good{color:#47785f;font-weight:600}
+.note{
+  margin-top:8px;padding-left:9px;border-left:2px solid #c1a46e;
+  font-size:10.5px;line-height:1.75;color:#5c605e;
+}
+.note b{color:#384b5e}
+.code-block{
+  margin:8px 0;padding:11px 13px;border-radius:5px;
+  background:#111e2d;border:1px solid #263b50;
+  color:#d7e6f2;overflow:auto;
+  font-family:var(--mono);font-size:9.5px;line-height:1.65;
+  box-shadow:inset 0 1px rgba(255,255,255,.04);
+}
+.code-block .c{color:#6e8ca3}
+.code-block .k{color:#e6b66e}
+.code-block .v{color:#89dcc0}
+.code-block .n{color:#9ccbf2}
+.paper-two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 30px}
+.paper-two-col .paper-q{border-bottom:1px dashed #c8c0ae}
+.paper-extension{
+  margin-top:4px;border:1px solid #cfc5b1;border-radius:6px;
+  background:rgba(235,228,211,.36);padding:15px 16px 14px;
+}
+.paper-extension>p{
+  font-family:var(--mono);font-size:7px;letter-spacing:.12em;color:#8b7048;
+  text-transform:uppercase;margin-bottom:4px;
+}
+.paper-extension h3{font-size:14px;color:#1e3044;margin-bottom:6px}
+.paper-extension p{font-size:11.5px;line-height:1.85;color:#3f484f;text-align:justify}
+.paper-extension p b{color:#1e3448}
+.paper-extension .highlight{color:#7b5a2e;font-weight:600}
+.paper-sign{
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin-top:16px;padding-top:10px;border-top:1px solid #d6cfbf;
+  font-size:7.5px;color:#918a7b;letter-spacing:.02em;
+}
+.answer-footnote{
+  display:flex;justify-content:space-between;gap:12px;
+  padding:10px 2px 0;font-size:8px;color:#465c72;
+}
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translate(-50%,12px);
+  z-index:200;pointer-events:none;
+  padding:9px 14px;border-radius:8px;
+  background:rgba(8,20,34,.94);border:1px solid rgba(79,227,255,.25);
+  box-shadow:0 14px 36px rgba(0,0,0,.45),0 0 22px rgba(79,227,255,.08);
+  color:#d9f8ff;font-size:10.5px;letter-spacing:.02em;
+  opacity:0;transition:opacity .2s,transform .2s;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.error{border-color:rgba(255,112,141,.3);color:#ffd8df}
+
+/* ---------------- footer ---------------- */
+.site-footer{
+  max-width:1500px;margin:8px auto 0;padding:18px clamp(16px,3vw,40px) 32px;
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  border-top:1px solid rgba(126,184,240,.07);
+  color:#40566c;font-size:8px;letter-spacing:.02em;
+}
+.site-footer b{color:#7189a1;font-weight:400}
+.site-footer .foot-mid{font-family:var(--mono);font-size:7.5px;color:#354b60}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseRing{0%{transform:scale(.85);opacity:.55}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}
+.section{animation:rise .55s ease both}
+#curves{animation-delay:.06s}
+#sensor{animation-delay:.1s}
+#answers{animation-delay:.14s}
+
+/* ---------------- responsive ---------------- */
+@media (max-width:1320px){
+  .twin-grid{grid-template-columns:minmax(0,1fr) 378px}
+  .stage-card,.control-card{min-height:600px}
+  .nav-link{padding:8px 9px;font-size:11px}
+  .student-chip{display:none}
+}
+@media (max-width:1120px){
+  .nav{display:none}
+  .top-actions{margin-left:auto}
+  .section-desc{max-width:360px}
+  .twin-grid{grid-template-columns:minmax(0,1fr) 356px}
+  .stage-card,.control-card{min-height:590px}
+  .cap-main b{font-size:31px}
+  .sensor-grid{grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr)}
+  .signal-chain{grid-template-columns:170px 1fr;gap:16px}
+  .chain-step{padding:6px 7px}
+}
+@media (max-width:960px){
+  .topbar{height:60px;gap:12px}
+  .brand-copy small{display:none}
+  .live-pill{display:none}
+  .section{padding-top:26px}
+  .section-head{align-items:flex-start;flex-direction:column;gap:8px;padding-bottom:14px}
+  .section-desc{text-align:left;max-width:640px;font-size:11px;padding:0}
+  .section-head h1 span,.section-head h2 span{display:block;margin:3px 0 0;font-size:.55em}
+  .twin-grid{grid-template-columns:1fr}
+  .stage-card{min-height:570px}
+  .stage-wrap{min-height:460px}
+  .control-card{min-height:0}
+  .control-body{display:grid;grid-template-columns:1fr 1fr;gap:11px 20px;padding:16px}
+  .mode-switch,.mode-note,.cap-readout,.sigma-line{grid-column:1/-1}
+  .cap-readout{display:grid;grid-template-columns:1fr 1fr;align-items:center;column-gap:16px}
+  .cap-readout-head{grid-column:1/-1}
+  .cap-main{margin-top:0}
+  .cap-formula{margin:0;white-space:normal;align-self:center}
+  .metric-grid{grid-column:1/-1}
+  .sigma-line{grid-column:1/-1;padding-top:0}
+  .chart-grid{grid-template-columns:1fr}
+  .chart-canvas{height:210px}
+  .analysis-bottom{grid-template-columns:1fr}
+  .sensor-grid{grid-template-columns:1fr}
+  .sensor-visual{min-height:400px}
+  #sensorScene{min-height:400px}
+  .signal-chain{grid-template-columns:1fr;gap:12px}
+  .signal-intro{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .signal-intro p{margin-top:0}
+  .paper-two-col{grid-template-columns:1fr;gap:0}
+  .paper-two-col .paper-q:first-child{border-bottom:1px dashed #c8c0ae}
+  .feature-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  .topbar{padding:0 14px}
+  .top-btn{width:29px;height:29px;padding:0;justify-content:center}
+  .top-btn .btn-label{display:none}
+  .top-btn svg{width:14px;height:14px}
+  .brand-mark{width:34px;height:34px;border-radius:10px}
+  .brand-mark svg{width:21px;height:21px}
+  .brand-copy strong{font-size:13px}
+  .wrap{padding:0 12px 24px}
+  .section{padding-top:22px}
+  .section-head h1,.section-head h2{font-size:23px}
+  .stage-card{min-height:510px}
+  .stage-wrap{min-height:400px}
+  .stage-hud{left:10px;right:auto;bottom:10px;max-width:calc(100% - 20px)}
+  .stage-hud>div{min-width:0;padding:6px 8px;gap:3px}
+  .stage-hud span{font-size:7.5px}
+  .stage-hud b{font-size:11px}
+  .stage-hud i{font-size:7px}
+  .stage-hud>div:nth-child(5),.stage-hud>div:nth-child(6){display:none}
+  .stage-tip{display:none}
+  .stage-hint{font-size:8px;top:52px}
+  .stage-topline{top:10px;left:10px;right:10px}
+  .stage-foot{gap:12px;font-size:8px;padding:0 11px}
+  .stage-foot span:last-child{display:none}
+  .micro-hint{display:none}
+  .control-body{grid-template-columns:1fr;gap:9px;padding:13px}
+  .mode-switch,.mode-note,.cap-readout,.metric-grid,.sigma-line{grid-column:auto}
+  .cap-readout{display:block}
+  .cap-main b{font-size:32px}
+  .cap-formula{margin-top:2px}
+  .chart-canvas{height:185px;padding:4px 4px 0}
+  .data-actions{gap:4px}
+  .small-btn{font-size:7.5px;padding:4px 5px}
+  .card-head{padding:0 12px}
+  .chart-foot{padding:0 12px}
+  .table-wrap{padding:0 6px}
+  thead th,tbody td{padding-left:4px;padding-right:4px}
+  thead th:last-child,tbody td:last-child{display:none}
+  .sensor-visual{min-height:330px}
+  #sensorScene{min-height:330px}
+  .hud-tr{right:9px;top:9px;min-width:104px;padding:6px 8px}
+  .hud-tr b{font-size:14px}
+  .hud-tl{left:9px;top:9px}
+  .hud-bl{left:9px;bottom:9px;font-size:6.5px}
+  .sensor-chart-wrap{padding:6px 8px}
+  .sensor-control-card .control-body{padding:11px 13px}
+  .chain-steps{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .chain-arrow{display:none}
+  .chain-step{min-width:0}
+  .answer-sheet{padding:20px 16px 16px;border-radius:10px}
+  .paper-head{display:block;padding-bottom:13px}
+  .paper-title h2{font-size:22px}
+  .paper-meta{justify-content:flex-start;margin-top:11px;gap:10px}
+  .paper-meta input{width:78px}
+  .paper-q{grid-template-columns:28px minmax(0,1fr);gap:9px;padding:15px 0}
+  .q-no{width:24px;height:24px;font-size:8px}
+  .q-body h3{font-size:13.5px;gap:5px}
+  .q-body p{font-size:11px;line-height:1.8}
+  .formula{font-size:14.5px;padding:8px 6px;margin:8px 0}
+  .feature-grid{grid-template-columns:1fr 1fr;gap:4px}
+  .feature-grid>div{padding:4px 6px}
+  .feature-grid span{font-size:7.2px}
+  .paper-extension{padding:12px 11px}
+  .paper-extension p{font-size:10.5px}
+  .code-block{font-size:8.5px;padding:9px}
+  .answer-actions{gap:5px}
+  .action-btn{font-size:8.5px;padding:6px 8px}
+  .answer-footnote{font-size:7px}
+  .site-footer{padding:14px 14px 26px;font-size:7px}
+  .site-footer .foot-mid{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+
+/* ---------------- print ---------------- */
+@media print{
+  @page{size:A4;margin:11mm 12mm}
+  html,body{background:#fff!important;color:#111!important}
+  body::before,body::after{display:none!important}
+  .topbar,.site-footer,.answer-actions,.section:not(#answers),.toast{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .section#answers{padding:0;animation:none}
+  .answers-head{display:none}
+  .answer-sheet{
+    border:0;border-radius:0;box-shadow:none;padding:0 2mm 2mm;
+    background:#fff;color:#111;font-size:10pt;
+    overflow:visible;
+  }
+  .answer-sheet::before{display:none}
+  .answer-sheet::after{display:none}
+  .paper-head{display:block;padding-bottom:10px;border-bottom-color:#111}
+  .paper-title h2{font-size:23px;margin-top:3px}
+  .paper-meta{justify-content:flex-start;margin-top:7px;gap:12px}
+  .paper-meta input{width:82px;font-size:11px}
+  .paper-meta input#studentId{width:96px;font-size:10px}
+  .paper-q{break-inside:avoid;page-break-inside:avoid;padding:14px 0;grid-template-columns:32px minmax(0,1fr);gap:10px}
+  .q-no{width:26px;height:26px;font-size:8px}
+  .paper-q[data-q="3"]{break-before:page;page-break-before:always}
+  .q-body p{font-size:10.4pt;line-height:1.72}
+  .feature-grid{grid-template-columns:1fr 1fr 1fr;gap:4px}
+  .feature-grid span{font-size:7.4px}
+  .paper-extension{break-inside:avoid;page-break-inside:avoid;background:#fff}
+  .paper-two-col{display:block}
+  .paper-two-col .paper-q{border-bottom:1px dashed #bbb}
+  .formula{font-size:14.5px;padding:6px 8px}
+  .code-block{
+    background:#f2f2f2;color:#111;border-color:#ccc;box-shadow:none;
+    overflow:visible;white-space:pre-wrap;word-break:break-word;
+    font-size:8.2px;line-height:1.55;
+  }
+  .code-block .c,.code-block .k,.code-block .v,.code-block .n{color:#111}
+  .copy-btn{display:none}
+  .paper-meta input{border-bottom:0;color:#111}
+  .answer-footnote{display:none}
+  .paper-sign{color:#666}
+  .formula{background:#f5f5f5}
+}
+
+</style>
+</head>
+<body>
+
+<!-- ================= TOP BAR ================= -->
+<header class="topbar">
+  <a class="brand" href="#twin" aria-label="回到数字孪生实验台">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 40 40" fill="none">
+        <path d="M8 13.5h24" stroke="#dffbff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M8 26.5h24" stroke="#dffbff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M20 17v7m0 0-2.5-2.5M20 24l2.5-2.5" stroke="#4fe3ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 13.5v-2m24 2v-2M8 26.5v2m24-2v2" stroke="#4fe3ff" stroke-width="1.1" stroke-linecap="round" opacity=".65"/>
+      </svg>
+    </span>
+    <span class="brand-copy">
+      <strong>平行板电容器</strong>
+      <small>DIGITAL TWIN LAB <i>·</i> 大学物理</small>
+    </span>
+  </a>
+
+  <nav class="nav" aria-label="页面导航">
+    <a class="nav-link active" href="#twin"><span>01</span>数字孪生</a>
+    <a class="nav-link" href="#curves"><span>02</span>特性曲线</a>
+    <a class="nav-link" href="#sensor"><span>03</span>手术传感</a>
+    <a class="nav-link" href="#answers"><span>04</span>作业答卷</a>
+  </nav>
+
+  <div class="top-actions">
+    <span class="live-pill"><i></i>LIVE 实时仿真</span>
+    <button class="top-btn" id="printTop" type="button" title="打印答卷">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>
+      <span class="btn-label">答卷</span>
+    </button>
+    <div class="student-chip" id="studentChip" title="可在作业答卷中修改姓名学号">
+      <span class="avatar" id="topAvatar">何</span>
+      <span><b id="topName">何佳</b><small id="topId">25001011223</small></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ================= 01 TWIN ================= -->
+  <section class="section" id="twin">
+    <div class="section-head">
+      <div>
+        <p class="kicker">01 / DIGITAL TWIN</p>
+        <h1>平行板电容器<span>数字孪生实验台</span></h1>
+      </div>
+      <p class="section-desc">拖动极板或调节参数，观察 <b>C、U、Q、E、W</b> 如何实时响应。<br>每一个读数都由物理公式计算，而不是预制动画。</p>
+    </div>
+
+    <div class="twin-grid">
+      <article class="card stage-card">
+        <div class="card-head">
+          <div class="card-title"><span class="eyebrow-dot"></span>实时孪生视图<em>LIVE TWIN</em></div>
+          <div class="stage-tools">
+            <span class="micro-hint"><kbd>拖动</kbd> 上极板调 d<span>·</span><kbd>滚轮</kbd> 微调</span>
+            <button class="icon-btn" id="resetView" type="button" title="恢复默认参数" aria-label="恢复默认参数">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3.2-6.9L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="stage-wrap" id="stageWrap">
+          <canvas id="stage" aria-label="平行板电容器实时仿真视图"></canvas>
+          <div class="stage-topline">
+            <span class="mode-badge" id="stageModeBadgeWrap"><i></i><span id="stageModeBadge">固定电荷 Q</span></span>
+            <span class="material-badge" id="stageMaterialBadge">空气 · εr 1.00</span>
+          </div>
+          <div class="stage-hint" id="stageHint">拖动上极板，观察电容 C 的变化</div>
+          <div class="stage-hud">
+            <div><span>间距 d</span><b id="hudD">2.00</b><i>mm</i></div>
+            <div class="divider"></div>
+            <div><span>电容 C</span><b id="hudC">44.27</b><i>pF</i></div>
+            <div class="divider"></div>
+            <div><span>场强 E</span><b id="hudE">22.6</b><i>kV/m</i></div>
+          </div>
+          <div class="stage-tip">视图为教学示意缩放 · 数值为真实计算</div>
+        </div>
+
+        <div class="stage-foot">
+          <span><i class="legend-plus">+</i> 极板 A / +Q</span>
+          <span><i class="legend-minus">−</i> 极板 B / −Q</span>
+          <span><i class="legend-field"></i> 电场线 A → B</span>
+        </div>
+      </article>
+
+      <aside class="card control-card">
+        <div class="card-head">
+          <div class="card-title">参数控制台<em>PARAMETERS</em></div>
+          <button class="text-btn" id="resetParams" type="button">恢复默认</button>
+        </div>
+        <div class="control-body">
+          <div class="mode-switch" role="group" aria-label="电源模式">
+            <button class="mode-btn active" type="button" data-mode="charge">固定电荷 Q</button>
+            <button class="mode-btn" type="button" data-mode="voltage">固定电压 U</button>
+          </div>
+          <p class="mode-note" id="modeNote"><b>Q 恒定：</b>改变 d，观察 U 如何随之变化。</p>
+
+          <div class="slider-block">
+            <div class="slider-head"><label for="dRange">极板间距 <i>d</i></label><span class="slider-val"><b id="dVal">2.00</b> mm</span></div>
+            <input class="range" id="dRange" type="range" min="0.1" max="10" step="0.01" value="2">
+          </div>
+
+          <div class="slider-block">
+            <div class="slider-head"><label for="sRange">极板面积 <i>S</i></label><span class="slider-val"><b id="sVal">100</b> cm²</span></div>
+            <input class="range" id="sRange" type="range" min="10" max="500" step="1" value="100">
+          </div>
+
+          <div class="material-block">
+            <div class="slider-head"><span class="label">介质材料 <i>εr</i></span><span class="slider-val"><b id="erVal">1.00</b></span></div>
+            <div class="chips" id="materialChips">
+              <button class="chip active" type="button" data-er="1.0006" data-name="空气">空气</button>
+              <button class="chip" type="button" data-er="3.7" data-name="纸">纸</button>
+              <button class="chip" type="button" data-er="5.0" data-name="玻璃">玻璃</button>
+              <button class="chip" type="button" data-er="10.0" data-name="陶瓷">陶瓷</button>
+              <button class="chip" type="button" data-er="80.0" data-name="水">水</button>
+            </div>
+            <input class="range range-thin" id="erRange" type="range" min="1" max="80" step="0.1" value="1" aria-label="相对介电常数">
+          </div>
+
+          <div class="slider-block" id="sourceGroup">
+            <div class="slider-head"><label for="sourceRange" id="sourceLabel">电荷量 <i>Q</i></label><span class="slider-val"><b id="sourceVal">2.00</b> <span id="sourceUnit">nC</span></span></div>
+            <input class="range range-amber" id="sourceRange" type="range" min="0.1" max="20" step="0.1" value="2">
+          </div>
+
+          <div class="cap-readout" aria-live="polite">
+            <div class="cap-readout-head"><span>电容 C <em>CAPACITANCE</em></span><span class="live-dot"><i></i>实时计算</span></div>
+            <div class="cap-main"><b id="cBig">44.27</b><span id="cUnit">pF</span></div>
+            <div class="cap-formula" id="formulaLive">C = ε₀εᵣS / d</div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric"><span>电压 U</span><div><b id="mU">45.2</b><i id="mUUnit">V</i></div></div>
+            <div class="metric"><span>电荷量 Q</span><div><b id="mQ">2.00</b><i id="mQUnit">nC</i></div></div>
+            <div class="metric"><span>场强 E</span><div><b id="mE">22.6</b><i id="mEUnit">kV/m</i></div></div>
+            <div class="metric"><span>储能 W</span><div><b id="mW">45.2</b><i id="mWUnit">nJ</i></div></div>
+          </div>
+          <div class="sigma-line"><span>电荷面密度 σ</span><b id="mSigma">0.200</b><i>μC/m²</i><span id="sigNote">= Q/S</span></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 02 CURVES ================= -->
+  <section class="section" id="curves">
+    <div class="section-head">
+      <div>
+        <p class="kicker">02 / CHARACTERISTIC CURVES</p>
+        <h2>看见反比关系<span>特性曲线 · 实验记录</span></h2>
+      </div>
+      <p class="section-desc">在双对数坐标中，C–d 是一条斜率 −1 的直线；把 <b>1/C</b> 对 d 作图，得到过原点的直线——两种图像共同验证 <b>C ∝ 1/d</b>。</p>
+    </div>
+
+    <div class="chart-grid">
+      <article class="card chart-card">
+        <div class="card-head">
+          <div class="card-title">C–d 特性曲线<em>LOG–LOG</em></div>
+          <span class="chart-badge" id="logSlopeBadge">斜率 −1</span>
+        </div>
+        <div class="chart-canvas"><canvas id="cChart" aria-label="电容随极板间距变化的双对数曲线"></canvas></div>
+        <div class="chart-foot"><span class="mini-line"></span><span id="chartCNote">当前 d = 2.00 mm · C = 44.27 pF</span></div>
+      </article>
+
+      <article class="card chart-card">
+        <div class="card-head">
+          <div class="card-title">1/C–d 线性验证<em>LINEAR CHECK</em></div>
+          <span class="chart-badge">过原点</span>
+        </div>
+        <div class="chart-canvas"><canvas id="invChart" aria-label="电容倒数随极板间距变化的线性曲线"></canvas></div>
+        <div class="chart-foot"><span class="mini-line amber"></span><span id="chartInvNote">直线过原点 ⇒ C 与 d 成反比</span></div>
+      </article>
+    </div>
+
+    <div class="analysis-bottom">
+      <article class="card data-card">
+        <div class="card-head">
+          <div class="card-title">实验数据记录<em>DATA LOG</em></div>
+          <div class="data-actions">
+            <button class="small-btn primary" id="recordBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              记录当前
+            </button>
+            <button class="small-btn" id="csvBtn" type="button">导出 CSV</button>
+            <button class="small-btn" id="clearBtn" type="button">清空</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <colgroup><col style="width:8%"><col style="width:17%"><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:15%"></colgroup>
+            <thead><tr><th>#</th><th>d / mm</th><th>C / pF</th><th>U / V</th><th>Q / nC</th><th>时间</th></tr></thead>
+            <tbody id="recordBody"></tbody>
+          </table>
+          <div class="table-empty" id="tableEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+            <div><b>还没有实验数据</b>调好参数后点击「记录当前」；也可以直接导出 CSV。</div>
+          </div>
+        </div>
+        <div class="table-foot"><span id="recordCount">0 条记录</span><span>数据仅保存在本页 · CSV 可直接用 Excel 打开</span></div>
+      </article>
+
+      <article class="card verify-card">
+        <div class="card-head">
+          <div class="card-title">反比关系 · 一键验证<em>WHAT IF</em></div>
+        </div>
+        <div class="verify-body">
+          <p>保持其他参数不变，点击其中一个倍率，观察 C 的变化：</p>
+          <div class="verify-buttons">
+            <button class="verify-btn" type="button" data-action="d2"><b>d × 2</b><span>C 应变为 × 0.5</span></button>
+            <button class="verify-btn" type="button" data-action="dhalf"><b>d ÷ 2</b><span>C 应变为 × 2</span></button>
+            <button class="verify-btn" type="button" data-action="s2"><b>S × 2</b><span>C 应变为 × 2</span></button>
+            <button class="verify-btn" type="button" data-action="er2"><b>εr × 2</b><span>C 应变为 × 2</span></button>
+          </div>
+          <div class="verify-msg" id="verifyMsg">当前：<b>d = 2.00 mm</b> · <b>C = 44.27 pF</b>。点击上方按钮做一次控制变量实验。</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= 03 SENSOR ================= -->
+  <section class="section" id="sensor">
+    <div class="section-head">
+      <div>
+        <p class="kicker">03 / BIOMEDICAL APPLICATION</p>
+        <h2>从平行板到手术尖端<span>微位移传感数字孪生</span></h2>
+      </div>
+      <p class="section-desc">固定极板面积 S 与介质 εr，让器械尖端带动一块极板改变间距 d。fF 级电容变化经差分电桥放大，反推出 <b>μm 级位移</b>，为精准操作与力反馈提供依据。</p>
+    </div>
+
+    <div class="sensor-grid">
+      <article class="card sensor-visual-card">
+        <div class="card-head">
+          <div class="card-title"><span class="eyebrow-dot"></span>手术尖端 · 电容传感<em>SURGICAL SENSOR</em></div>
+          <span class="chart-badge" id="sensorDiffBadge">差分模式 ×2</span>
+        </div>
+
+        <div class="sensor-visual" id="sensorVisual">
+          <svg id="sensorScene" viewBox="0 0 720 420" role="img" aria-labelledby="sensorTitle sensorDesc">
+            <title id="sensorTitle">微创手术机器人尖端电容式微位移传感器示意图</title>
+            <desc id="sensorDesc">机械臂夹持手术器械，器械尖端的上极板随微小位移移动，与组织表面的下极板构成平行板电容器，通过测量电容变化反推位移。</desc>
+            <defs>
+              <radialGradient id="gScene" cx="55%" cy="28%" r="88%">
+                <stop offset="0" stop-color="#0d2638"/>
+                <stop offset=".58" stop-color="#071421"/>
+                <stop offset="1" stop-color="#040a12"/>
+              </radialGradient>
+              <pattern id="pGrid" width="34" height="34" patternUnits="userSpaceOnUse">
+                <path d="M34 0H0v34" fill="none" stroke="#77cce0" stroke-width=".6" opacity=".10"/>
+              </pattern>
+              <linearGradient id="gArm" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#b6c9d9"/>
+                <stop offset=".30" stop-color="#70879c"/>
+                <stop offset=".58" stop-color="#374c61"/>
+                <stop offset="1" stop-color="#192a3b"/>
+              </linearGradient>
+              <linearGradient id="gArmHi" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
+                <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="gShaft" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#25394d"/>
+                <stop offset=".28" stop-color="#8ca2b4"/>
+                <stop offset=".52" stop-color="#d9e9f3"/>
+                <stop offset=".72" stop-color="#657d92"/>
+                <stop offset="1" stop-color="#182a3b"/>
+              </linearGradient>
+              <linearGradient id="gTissue" x1="0" y1="0" x2=".85" y2="1">
+                <stop offset="0" stop-color="#f4a6ad"/>
+                <stop offset=".32" stop-color="#db7b88"/>
+                <stop offset=".66" stop-color="#af5064"/>
+                <stop offset="1" stop-color="#6f263c"/>
+              </linearGradient>
+              <radialGradient id="gTissueGlow" cx="50%" cy="45%" r="55%">
+                <stop offset="0" stop-color="#ffc9c9" stop-opacity=".42"/>
+                <stop offset="1" stop-color="#ff8d9e" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="gCavity" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#7d2b40"/>
+                <stop offset=".55" stop-color="#a94758"/>
+                <stop offset="1" stop-color="#d47c83"/>
+              </linearGradient>
+              <radialGradient id="gPlateTop" cx="50%" cy="0%" r="100%">
+                <stop offset="0" stop-color="#e5fdff"/>
+                <stop offset=".45" stop-color="#8de8f4"/>
+                <stop offset="1" stop-color="#1d849b"/>
+              </radialGradient>
+              <filter id="fGlow" x="-80%" y="-80%" width="260%" height="260%">
+                <feGaussianBlur stdDeviation="3.2" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="fSoft" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="5"/>
+              </filter>
+              <marker id="mArrowCyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M0 0 10 5 0 10Z" fill="#4fe3ff"/>
+              </marker>
+              <marker id="mArrowAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M0 0 10 5 0 10Z" fill="#ffb454"/>
+              </marker>
+            </defs>
+
+            <rect width="720" height="420" fill="url(#gScene)"/>
+            <rect width="720" height="420" fill="url(#pGrid)"/>
+            <ellipse cx="535" cy="160" rx="285" ry="190" fill="#0c4356" opacity=".15"/>
+            <ellipse cx="510" cy="355" rx="230" ry="110" fill="url(#gTissueGlow)"/>
+
+            <!-- decorative targeting rings -->
+            <g opacity=".28" fill="none" stroke="#5ad9ee">
+              <circle cx="486" cy="307" r="56" stroke-width=".7" stroke-dasharray="2 7"/>
+              <circle cx="486" cy="307" r="86" stroke-width=".5" stroke-dasharray="1 10"/>
+              <path d="M486 238v12M486 364v12M417 307h12M543 307h12" stroke-width=".8"/>
+            </g>
+
+            <!-- operating table shadow -->
+            <ellipse cx="520" cy="399" rx="300" ry="40" fill="#02070e" opacity=".75"/>
+
+            <!-- tissue -->
+            <path d="M286 420c28-55 80-91 146-103 59-11 116-4 170 21 43 19 85 49 118 82Z" fill="url(#gTissue)"/>
+            <path d="M306 408c35-43 80-71 132-80 52-9 102-3 148 18 41 19 75 43 101 68Z" fill="#c45e70" opacity=".52"/>
+            <path d="M342 383c49-40 111-55 174-46 47 7 88 23 123 47" fill="none" stroke="#ffc3bd" stroke-width="2.2" opacity=".45"/>
+            <path d="M300 420c52-40 99-66 151-77" fill="none" stroke="#5f1d32" stroke-width="1.3" opacity=".42"/>
+
+            <g id="tissueCavity">
+              <path d="M392 351c25-27 74-41 126-36 48 5 82 21 103 45-19 29-57 46-108 48-54 2-98-17-121-57Z" fill="url(#gCavity)" opacity=".75"/>
+              <path d="M404 348c31-19 70-27 111-24 24 2 47 8 68 19" fill="none" stroke="#ffd2cb" stroke-width="1.5" opacity=".52"/>
+              <ellipse cx="506" cy="331" rx="87" ry="16" fill="#4b1325" opacity=".38"/>
+              <g class="pulse-rings" id="pulseRings">
+                <ellipse cx="516" cy="345" rx="42" ry="14" fill="none" stroke="#ffb0b6" stroke-width="1" opacity=".55"/>
+                <ellipse cx="516" cy="345" rx="58" ry="20" fill="none" stroke="#ffb0b6" stroke-width=".7" opacity=".3"/>
+              </g>
+              <text x="610" y="391" fill="#f2bbb7" font-size="9" letter-spacing="1.8" opacity=".72">组织表面</text>
+              <path d="M604 379c-13-7-26-4-38 4" fill="none" stroke="#f2bbb7" stroke-width=".7" opacity=".55"/>
+            </g>
+
+            <!-- robot arm -->
+            <g opacity=".95">
+              <circle cx="88" cy="91" r="27" fill="#091725" stroke="#32536b" stroke-width="2"/>
+              <circle cx="88" cy="91" r="14" fill="url(#gArm)" stroke="#8ea8bb" stroke-width="1.2"/>
+              <circle cx="88" cy="91" r="5" fill="#4fe3ff" opacity=".8" filter="url(#fGlow)"/>
+              <path d="M100 97 242 128" stroke="#10202f" stroke-width="31" stroke-linecap="round" opacity=".65"/>
+              <path d="M100 93 242 124" stroke="url(#gArm)" stroke-width="24" stroke-linecap="round"/>
+              <path d="M107 85 232 113" stroke="url(#gArmHi)" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+              <circle cx="244" cy="128" r="18" fill="#0a1927" stroke="#31526a" stroke-width="2"/>
+              <circle cx="244" cy="128" r="8" fill="url(#gArm)" stroke="#9bb4c7" stroke-width="1"/>
+              <path d="M250 140 327 112" stroke="#10202f" stroke-width="26" stroke-linecap="round" opacity=".6"/>
+              <path d="M250 136 327 108" stroke="url(#gArm)" stroke-width="19" stroke-linecap="round"/>
+              <path d="M255 128 320 104" stroke="url(#gArmHi)" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+              <circle cx="329" cy="108" r="15" fill="#091725" stroke="#31526a" stroke-width="2"/>
+              <circle cx="329" cy="108" r="6" fill="url(#gArm)" stroke="#9bb4c7" stroke-width="1"/>
+              <path d="M340 115 408 169" stroke="#10202f" stroke-width="21" stroke-linecap="round" opacity=".62"/>
+              <path d="M340 112 408 166" stroke="url(#gArm)" stroke-width="15" stroke-linecap="round"/>
+              <path d="M344 104 404 157" stroke="url(#gArmHi)" stroke-width="2.5" stroke-linecap="round" opacity=".45"/>
+              <circle cx="411" cy="169" r="13" fill="#091725" stroke="#31526a" stroke-width="2"/>
+              <circle cx="411" cy="169" r="5" fill="url(#gArm)" stroke="#9bb4c7" stroke-width="1"/>
+            </g>
+
+            <!-- instrument shaft, angled into the tip -->
+            <path d="M413 172 482 253" stroke="#0a1622" stroke-width="16" stroke-linecap="round" opacity=".7"/>
+            <path d="M412 169 481 250" stroke="url(#gShaft)" stroke-width="9" stroke-linecap="round"/>
+            <path d="M416 166 478 243" stroke="#e8f6ff" stroke-width="1.4" stroke-linecap="round" opacity=".55"/>
+            <circle cx="486" cy="255" r="7" fill="#091725" stroke="#7c9aaf" stroke-width="1.4"/>
+            <circle cx="486" cy="255" r="2.2" fill="#4fe3ff" opacity=".9"/>
+
+            <!-- moving sensor top assembly -->
+            <g id="sensorProbeTop">
+              <rect x="480" y="225" width="12" height="73" rx="6" fill="url(#gShaft)" stroke="#7c99ae" stroke-width=".8"/>
+              <rect x="477" y="287" width="18" height="7" rx="3" fill="#243c4e" stroke="#96b5c9" stroke-width=".7"/>
+              <rect x="459" y="291" width="54" height="6" rx="3" fill="url(#gPlateTop)" stroke="#a8f6ff" stroke-width="1" filter="url(#fGlow)"/>
+              <path d="M459 295h54" stroke="#4fe3ff" stroke-width="1.6" opacity=".9"/>
+              <path d="M468 286v-7m36 7v-7" stroke="#4fe3ff" stroke-width="1" opacity=".55"/>
+              <circle cx="459" cy="294" r="1.6" fill="#e9feff"/>
+              <circle cx="513" cy="294" r="1.6" fill="#e9feff"/>
+            </g>
+
+            <!-- fixed bottom electrode -->
+            <g id="sensorBottomPlate">
+              <rect x="459" y="315" width="54" height="5" rx="2.5" fill="#b8e8dc" stroke="#6ef4c8" stroke-width="1" filter="url(#fGlow)"/>
+              <rect x="474" y="319" width="24" height="5" rx="2" fill="#2c5f58" opacity=".8"/>
+              <path d="M466 320h40" stroke="#4ce0a1" stroke-width="1" opacity=".65"/>
+            </g>
+
+            <!-- gap dimension -->
+            <line id="sensorGapLine" x1="530" y1="298" x2="530" y2="315" stroke="#4fe3ff" stroke-width="1" stroke-dasharray="2 2.5" opacity=".85"/>
+            <path id="sensorGapTickTop" d="M526 298h8" stroke="#4fe3ff" stroke-width="1"/>
+            <path id="sensorGapTickBottom" d="M526 315h8" stroke="#4fe3ff" stroke-width="1"/>
+            <text id="sensorGapLabel" x="538" y="309" fill="#8fe8f4" font-size="8.5" font-family="Cascadia Code,Consolas,monospace">d = 98 μm</text>
+
+            <!-- callout -->
+            <path d="M515 291 566 244h72" fill="none" stroke="#71c9d8" stroke-width=".7" stroke-dasharray="2 4" opacity=".7"/>
+            <circle cx="515" cy="291" r="2" fill="#71c9d8"/>
+            <text x="642" y="241" text-anchor="end" fill="#a9dfe7" font-size="9.5" letter-spacing=".5">平行板电容传感器</text>
+            <text x="642" y="254" text-anchor="end" fill="#527f8c" font-size="7.4" font-family="Cascadia Code,Consolas,monospace">C = ε₀εᵣS / d</text>
+
+            <!-- precision / force callout -->
+            <path d="M421 351c-28-20-31-53-13-76" fill="none" stroke="#ffb454" stroke-width="1" opacity=".55" marker-end="url(#mArrowAmber)"/>
+            <text x="336" y="369" fill="#b58a55" font-size="8.2" letter-spacing=".7">力反馈闭环</text>
+            <path d="M351 331 397 300" fill="none" stroke="#ffb454" stroke-width=".7" stroke-dasharray="2 4" opacity=".45"/>
+
+            <!-- labels -->
+            <g font-size="8" fill="#5e8396" letter-spacing=".7">
+              <text x="88" y="143" text-anchor="middle">机械臂</text>
+              <text x="402" y="230" text-anchor="end">器械尖端</text>
+              <path d="M405 226 469 277" fill="none" stroke="#5e8396" stroke-width=".6" stroke-dasharray="2 4" opacity=".55"/>
+            </g>
+            <g opacity=".5">
+              <path d="M60 372h26M60 378h17M60 384h21" stroke="#31566b" stroke-width=".8"/>
+            </g>
+          </svg>
+
+          <div class="sensor-hud hud-tl"><span>MICRO-DISPLACEMENT</span><b>电容式微位移传感</b></div>
+          <div class="sensor-hud hud-tr">
+            <span id="sensorDeltaLabel">差分输出 ΔC</span>
+            <div><b id="sensorHudDelta">+7.08</b><i>fF</i></div>
+            <small>Δx = <em id="sensorHudX">+2.0</em> μm</small>
+          </div>
+          <div class="sensor-hud hud-bl"><span class="signal-dot"></span>电容 → 电桥 → 解调 → 位移</div>
+        </div>
+
+        <div class="sensor-chart-wrap">
+          <div class="sensor-chart-head"><span>C–Δx 响应 · 局部放大</span><span id="sensorChartNote">精确解 vs 线性近似</span></div>
+          <canvas id="sensorChart" aria-label="传感器电容变化随位移变化的响应曲线"></canvas>
+        </div>
+      </article>
+
+      <aside class="card sensor-control-card">
+        <div class="card-head">
+          <div class="card-title">传感参数<em>SENSOR SETUP</em></div>
+          <button class="text-btn" id="sensorReset" type="button">复位</button>
+        </div>
+        <div class="control-body">
+          <div class="slider-block">
+            <div class="slider-head"><label for="sdRange">初始间距 <i>d₀</i></label><span class="slider-val"><b id="sdVal">100</b> μm</span></div>
+            <input class="range" id="sdRange" type="range" min="20" max="500" step="1" value="100">
+          </div>
+          <div class="slider-block">
+            <div class="slider-head"><label for="ssRange">极板面积 <i>S</i></label><span class="slider-val"><b id="ssVal">2.0</b> mm²</span></div>
+            <input class="range" id="ssRange" type="range" min="1" max="20" step="0.1" value="2">
+          </div>
+          <div class="slider-block">
+            <div class="slider-head"><label for="sxRange">尖端位移 <i>Δx</i></label><span class="slider-val"><b id="sxVal">+2.0</b> μm</span></div>
+            <input class="range range-amber" id="sxRange" type="range" min="-10" max="10" step="0.1" value="2">
+          </div>
+
+          <div class="switch-row">
+            <div class="switch-copy"><b>差分电容结构</b><span>灵敏度 ×2，抑制共模漂移</span></div>
+            <label class="switch"><input id="diffToggle" type="checkbox" checked aria-label="启用差分电容结构"><span class="track"></span></label>
+          </div>
+          <div class="switch-row">
+            <div class="switch-copy"><b>模拟组织搏动</b><span>叠加 ±2.4 μm 的动态扰动</span></div>
+            <label class="switch"><input id="pulseToggle" type="checkbox" aria-label="模拟组织搏动"><span class="track"></span></label>
+          </div>
+
+          <div class="metric-grid sensor-metrics">
+            <div class="metric"><span>初始电容 C₀</span><div><b id="sensorC0">0.177</b><i>pF</i></div></div>
+            <div class="metric"><span>实时电容 C</span><div><b id="sensorC">0.181</b><i>pF</i></div></div>
+            <div class="metric"><span>灵敏度</span><div><b id="sensorSens">3.54</b><i>fF/μm</i></div></div>
+            <div class="metric"><span>位移分辨率</span><div><b id="sensorRes">0.28</b><i>μm</i></div></div>
+          </div>
+          <p class="sensor-note">按 <b>1 fF</b> 电容检测分辨率估算；差分结构将灵敏度提高一倍，并抑制温度与共模干扰。</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="signal-chain card">
+      <div class="signal-intro">
+        <p class="kicker">SIGNAL PATH</p>
+        <h3>从微米位移到可读信号</h3>
+        <p>Δx → d → C → ΔC → displacement</p>
+      </div>
+      <div class="chain-steps">
+        <div class="chain-step"><span>01</span><b>尖端微位移</b><small>Δx ≈ ±10 μm</small></div>
+        <i class="chain-arrow">→</i>
+        <div class="chain-step"><span>02</span><b>极板间距变化</b><small>d = d₀ − Δx</small></div>
+        <i class="chain-arrow">→</i>
+        <div class="chain-step"><span>03</span><b>电容变化</b><small>C = ε₀εᵣS / d</small></div>
+        <i class="chain-arrow">→</i>
+        <div class="chain-step"><span>04</span><b>差分电桥放大</b><small>ΔC → voltage</small></div>
+        <i class="chain-arrow">→</i>
+        <div class="chain-step accent"><span>05</span><b>位移解算 + 力反馈</b><small>close the loop</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 04 ANSWERS ================= -->
+  <section class="section" id="answers">
+    <div class="section-head answers-head">
+      <div>
+        <p class="kicker">04 / ANSWER SHEET</p>
+        <h2>作业答卷<span>可直接提交 · 也可打印为 PDF</span></h2>
+      </div>
+      <div class="answer-actions">
+        <button class="action-btn" id="copyAll" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          复制全部答案
+        </button>
+        <button class="action-btn primary" id="printSheet" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>
+          打印 / 导出 PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="answer-sheet" id="answerSheet">
+      <div class="paper-head">
+        <div class="paper-title">
+          <p>UNIVERSITY PHYSICS · AI DIGITAL TWIN ASSIGNMENT</p>
+          <h2>平行板电容器 · 数字孪生作业</h2>
+        </div>
+        <div class="paper-meta">
+          <label>姓名 <input id="studentName" type="text" value="何佳" autocomplete="off" spellcheck="false"></label>
+          <label>学号 <input id="studentId" type="text" value="25001011223" autocomplete="off" spellcheck="false"></label>
+          <span class="paper-tag">HTML 单文件提交</span>
+        </div>
+      </div>
+
+      <div class="paper-q" data-q="1">
+        <div class="q-no">01</div>
+        <div class="q-body">
+          <h3>使用 AI 生成平行板电容器数字孪生平台 <span>Digital twin · interactive platform</span><button class="copy-btn" type="button" data-copy-target="q1">复制</button></h3>
+          <p><b>答：</b>已完成一个可直接运行的单文件数字孪生平台（即本 HTML）。平台以平行板电容器模型为核心，参数、场图、曲线、数据记录与生物医学应用全部联动，打开浏览器即可使用，无需安装或联网。</p>
+          <div class="feature-grid">
+            <div><b>参数可调</b><span>d、S、εr、Q / U 全部可调，支持五种介质</span></div>
+            <div><b>可交互</b><span>拖动上极板改变 d，滚轮微调，双击复位</span></div>
+            <div><b>实时物理场</b><span>电荷、介质、电场线与动态粒子同步显示</span></div>
+            <div><b>曲线与验证</b><span>C–d 双对数曲线、1/C–d 线性验证、一键倍率实验</span></div>
+            <div><b>数据能力</b><span>实验记录、清空、CSV 导出，可直接用 Excel 分析</span></div>
+            <div><b>拓展应用</b><span>手术机器人微位移传感：μΔx、fF 级 ΔC、差分结构</span></div>
+          </div>
+          <div class="paper-callout"><b>平台入口</b>本 HTML 文件（单文件、离线运行）。提交时直接上传该文件；若课程平台要求填写网址，将本文件部署到任意静态托管（如 GitHub Pages）后填入对应链接即可。</div>
+          <div class="demo-script"><b>60 秒交互演示建议：</b><span>01</span>拖动上极板，展示 d↓ → C↑；<span>02</span>切换“固定电压 U”，观察 Q 与 E 的变化；<span>03</span>点击“d × 2”，验证 C 减半；<span>04</span>记录 3 组数据并导出 CSV；<span>05</span>进入手术传感，调 Δx 观察 fF 级变化；<span>06</span>展示本答卷。</div>
+        </div>
+      </div>
+
+      <div class="paper-q" data-q="2">
+        <div class="q-no">02</div>
+        <div class="q-body">
+          <h3>改变板间距离 d，电容值如何变化？ <span>Control variable · C–d</span><button class="copy-btn" type="button" data-copy-target="q2">复制</button></h3>
+          <p><b>答：</b>由平行板电容器公式可知，当极板面积 S 和介质相对介电常数 εr 保持不变时，电容 C 与板间距离 d 成<span class="hl">反比</span>：</p>
+          <div class="formula">C <span class="eq">=</span> ε<sub>0</sub>ε<sub>r</sub>S / d <span class="eq">⇒</span> C ∝ 1/d</div>
+          <p>因此，<b>d 增大时 C 减小，d 减小时 C 增大</b>；若 d 变为原来的 n 倍，C 就变为原来的 1/n。以 S = 100 cm²、εr = 1.0006（空气）为例：</p>
+          <div class="mini-table">
+            <div><span>板间距离 d</span><span>电容 C</span><span>相对变化</span></div>
+            <div><span>1.00 mm</span><span>88.59 pF</span><span class="good">2.00 ×</span></div>
+            <div><span>2.00 mm</span><span>44.30 pF</span><span>1.00 ×（基准）</span></div>
+            <div><span>4.00 mm</span><span>22.15 pF</span><span class="good">0.50 ×</span></div>
+          </div>
+          <div class="note"><b>补充：</b>若保持电荷量 Q 不变，U = Q/C 会随 d 增大而增大，而 E = Q/(ε₀εᵣS) 与 d 无关；若保持电压 U 不变，Q = CU 会随 d 增大而减小，E = U/d 也随 d 增大而减小。平台中的两种模式可分别验证。</div>
+        </div>
+      </div>
+
+      <div class="paper-q" data-q="3">
+        <div class="q-no">03</div>
+        <div class="q-body">
+          <h3>代码中的核心物理公式是什么？ <span>Core physics · source code</span><button class="copy-btn" type="button" data-copy-target="q3">复制</button></h3>
+          <p><b>答：</b>核心是平行板电容器的电容公式，以及由它导出的电压、场强、面电荷密度和储能公式：</p>
+          <div class="formula">C = ε<sub>0</sub>ε<sub>r</sub>S / d　·　σ = Q/S　·　E = σ/(ε<sub>0</sub>ε<sub>r</sub>) = U/d　·　W = ½CU²</div>
+          <p>代码先统一单位（cm² → m²、mm → m），再计算电容；固定电荷时由 U = Q/C 求电压，固定电压时由 Q = CU 求电荷量。</p>
+          <pre class="code-block"><span class="c">// 核心物理计算（节选）</span>
+<span class="k">const</span> EPS0 = <span class="n">8.8541878128e-12</span>;       <span class="c">// 真空介电常数 F/m</span>
+<span class="k">const</span> S = state.S * <span class="n">1e-4</span>;            <span class="c">// cm² → m²</span>
+<span class="k">const</span> d = state.d * <span class="n">1e-3</span>;            <span class="c">// mm → m</span>
+<span class="k">const</span> C = EPS0 * state.er * S / d;     <span class="c">// 电容 F</span>
+<span class="k">const</span> Q = state.mode === <span class="v">'charge'</span>
+  ? state.Q * <span class="n">1e-9</span> : C * state.U;
+<span class="k">const</span> U = state.mode === <span class="v">'charge'</span>
+  ? Q / C : state.U;
+<span class="k">const</span> E = U / d;                       <span class="c">// 场强 V/m</span>
+<span class="k">const</span> W = <span class="n">0.5</span> * C * U * U;              <span class="c">// 储能 J</span></pre>
+          <div class="note"><b>小位移线性化（传感模块）：</b>C(d₀+Δx) = ε₀εᵣS/(d₀+Δx)；当 |Δx| ≪ d₀ 时，ΔC ≈ −C₀·Δx/d₀，因此测出 ΔC 即可反推尖端位移。</div>
+        </div>
+      </div>
+
+      <div class="paper-extension">
+        <p>EXTENSION · CAPACITIVE MICRO-DISPLACEMENT SENSING</p>
+        <h3>拓展应用：微创手术机器人尖端的实时微位移监测</h3>
+        <p><b>应调节的物理参数：</b>固定极板面积 S 和介质 εr，让器械尖端（或被测量组织）带动一块极板，使<span class="highlight">极板间距 d 随微小位移改变</span>。此时 C = ε₀εᵣS/d，通过测量电容变化 ΔC 即可反推位移 Δx。</p>
+        <p><b>提高灵敏度的方法：</b>减小初始间距 d₀（灵敏度约与 1/d₀² 成正比）、增大极板面积 S、选用更高 εr 的介质、采用差分电容结构（灵敏度约 ×2，并抑制温度漂移与共模干扰）、提高电容检测电路的分辨率（fF 级）。平台中把 Δx 调到 ±2 μm，就能看到 fF 级 ΔC 与 μm 级分辨率的变化。</p>
+        <p><b>与力反馈结合：</b>电容传感负责“尖端移动了多远”，力传感器负责“接触力有多大”；两者构成闭环，可实时校正器械位置与接触力，避免组织损伤。这也是平行板电容器从课堂公式走向微创手术机器人的典型路径。</p>
+      </div>
+
+      <div class="paper-sign">
+        <span>AI 辅助生成 · 物理公式与数值结果已校核 · 单文件 HTML</span>
+        <span>平行板电容器数字孪生实验平台</span>
+      </div>
+    </div>
+
+    <div class="answer-footnote">
+      <span>* 页面中的示例计算取 ε₀ = 8.8541878128×10⁻¹² F/m，空气 εr ≈ 1.0006。</span>
+      <span>答案可直接复制或打印；姓名、学号可在答卷顶部修改。</span>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <span><b>平行板电容器 · 数字孪生实验平台</b>　大学物理 AI 作业</span>
+  <span class="foot-mid">SINGLE-FILE HTML · CANVAS 2D · NO DEPENDENCIES</span>
+  <span id="footerName">何佳 · 25001011223</span>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ------------------------------------------------------------------
+     0. 基础工具与常量
+  ------------------------------------------------------------------ */
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const EPS0 = 8.8541878128e-12;
+  const MONO = '"Cascadia Code", Consolas, "Courier New", monospace';
+  const UI = '"Segoe UI", "Microsoft YaHei", sans-serif';
+  const KEY = 'capacitor-twin-v1';
+  const DEFAULTS = Object.freeze({ mode: 'charge', d: 2, S: 100, er: 1.0006, Q: 2, U: 45.2, material: '空气' });
+  const SENSOR_DEFAULTS = Object.freeze({ d0: 100, S: 2, dx: 2, diff: true, pulse: false });
+
+  const state = {
+    ...DEFAULTS,
+    profile: { name: '何佳', id: '25001011223' },
+    records: [],
+    sensor: { ...SENSOR_DEFAULTS },
+  };
+  let current = null;
+  let currentSensor = null;
+  let dragging = false;
+  let lastFrame = 0;
+  let lastSensorFrame = 0;
+  let stageVisible = true;
+  let toastTimer = 0;
+  let saveTimer = 0;
+
+  /* ------------------------------------------------------------------
+     1. 数字格式化
+  ------------------------------------------------------------------ */
+  function nf(v, digits = 2) {
+    if (!Number.isFinite(v)) return '—';
+    const a = Math.abs(v);
+    if (a !== 0 && a < 0.001) return v.toExponential(1);
+    return v.toFixed(digits);
+  }
+
+  function fmtC(F) {
+    if (!Number.isFinite(F)) return { v: '—', u: 'pF', f: 1e12 };
+    if (F >= 1e-6) return { v: nf(F * 1e6, 2), u: 'μF', f: 1e6 };
+    if (F >= 1e-9) return { v: nf(F * 1e9, 2), u: 'nF', f: 1e9 };
+    if (F >= 1e-12) return { v: nf(F * 1e12, 2), u: 'pF', f: 1e12 };
+    return { v: nf(F * 1e15, 2), u: 'fF', f: 1e15 };
+  }
+
+  function fmtU(U) {
+    if (!Number.isFinite(U)) return { v: '—', u: 'V' };
+    if (U >= 1000) return { v: nf(U / 1000, 2), u: 'kV' };
+    if (U >= 1) return { v: nf(U, 1), u: 'V' };
+    return { v: nf(U * 1000, 1), u: 'mV' };
+  }
+
+  function fmtQ(Q) {
+    if (!Number.isFinite(Q)) return { v: '—', u: 'nC' };
+    if (Q >= 1e-6) return { v: nf(Q * 1e6, 3), u: 'μC' };
+    if (Q >= 1e-9) return { v: nf(Q * 1e9, 2), u: 'nC' };
+    return { v: nf(Q * 1e12, 1), u: 'pC' };
+  }
+
+  function fmtE(E) {
+    if (!Number.isFinite(E)) return { v: '—', u: 'kV/m' };
+    if (E >= 1e6) return { v: nf(E / 1e6, 2), u: 'MV/m' };
+    if (E >= 1000) return { v: nf(E / 1000, 1), u: 'kV/m' };
+    return { v: nf(E, 0), u: 'V/m' };
+  }
+
+  function fmtW(W) {
+    if (!Number.isFinite(W)) return { v: '—', u: 'nJ' };
+    if (W >= 1e-3) return { v: nf(W * 1e3, 3), u: 'mJ' };
+    if (W >= 1e-6) return { v: nf(W * 1e6, 2), u: 'μJ' };
+    if (W >= 1e-9) return { v: nf(W * 1e9, 1), u: 'nJ' };
+    return { v: nf(W * 1e12, 1), u: 'pJ' };
+  }
+
+  function signed(v, digits = 2) {
+    return `${v >= 0 ? '+' : '−'}${nf(Math.abs(v), digits)}`;
+  }
+
+  function shortNum(v) {
+    if (!Number.isFinite(v)) return '—';
+    const a = Math.abs(v);
+    if (a >= 1000) return v.toFixed(0);
+    if (a >= 100) return v.toFixed(1);
+    if (a >= 10) return v.toFixed(2);
+    return v.toFixed(3);
+  }
+
+  function pickUnit(F) {
+    if (F >= 1e-6) return { u: 'μF', f: 1e6 };
+    if (F >= 1e-9) return { u: 'nF', f: 1e9 };
+    if (F >= 1e-12) return { u: 'pF', f: 1e12 };
+    return { u: 'fF', f: 1e15 };
+  }
+
+  function erText() {
+    return state.er < 1.01 ? state.er.toFixed(4) : state.er.toFixed(2);
+  }
+
+  function niceMax(v) {
+    if (!Number.isFinite(v) || v <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    const n = v / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+  }
+
+  /* ------------------------------------------------------------------
+     2. 状态存取
+  ------------------------------------------------------------------ */
+  function num(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function restore() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { saved = null; }
+    if (!saved || typeof saved !== 'object') return;
+
+    state.mode = saved.mode === 'voltage' ? 'voltage' : 'charge';
+    state.d = clamp(num(saved.d, DEFAULTS.d), 0.1, 10);
+    state.S = clamp(num(saved.S, DEFAULTS.S), 10, 500);
+    state.er = clamp(num(saved.er, DEFAULTS.er), 1, 80);
+    state.Q = clamp(num(saved.Q, DEFAULTS.Q), 0.01, 1e7);
+    state.U = clamp(num(saved.U, DEFAULTS.U), 0.01, 1e6);
+    if (typeof saved.material === 'string' && saved.material) state.material = saved.material;
+
+    if (saved.profile && typeof saved.profile === 'object') {
+      state.profile.name = String(saved.profile.name || '').slice(0, 20) || '何佳';
+      state.profile.id = String(saved.profile.id || '').slice(0, 24) || '25001011223';
+    }
+
+    if (Array.isArray(saved.records)) {
+      state.records = saved.records
+        .filter(r => r && Number.isFinite(+r.d) && Number.isFinite(+r.C))
+        .slice(-40)
+        .map(r => ({
+          d: +r.d, C: +r.C, U: num(r.U, 0), Q: num(r.Q, 0),
+          t: typeof r.t === 'string' ? r.t : new Date().toISOString(),
+        }));
+    }
+
+    if (saved.sensor && typeof saved.sensor === 'object') {
+      state.sensor.d0 = clamp(num(saved.sensor.d0, SENSOR_DEFAULTS.d0), 20, 500);
+      state.sensor.S = clamp(num(saved.sensor.S, SENSOR_DEFAULTS.S), 1, 20);
+      state.sensor.dx = clamp(num(saved.sensor.dx, SENSOR_DEFAULTS.dx), -10, 10);
+      state.sensor.diff = saved.sensor.diff !== false;
+      state.sensor.pulse = saved.sensor.pulse === true;
+    }
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveState, 220);
+  }
+
+  function saveState() {
+    clearTimeout(saveTimer);
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        mode: state.mode, d: state.d, S: state.S, er: state.er,
+        Q: state.Q, U: state.U, material: state.material,
+        profile: state.profile, records: state.records, sensor: state.sensor,
+      }));
+    } catch (_) { /* 本地文件或隐私模式下忽略 */ }
+  }
+
+  /* ------------------------------------------------------------------
+     3. 物理计算
+  ------------------------------------------------------------------ */
+  function compute() {
+    const S_m2 = state.S * 1e-4;
+    const d_m = state.d * 1e-3;
+    const C = EPS0 * state.er * S_m2 / d_m;
+    let Q, U;
+    if (state.mode === 'charge') {
+      Q = state.Q * 1e-9;
+      U = Q / C;
+    } else {
+      U = state.U;
+      Q = C * U;
+    }
+    return {
+      S_m2, d_m, C, Q, U,
+      d: state.d, S: state.S, er: state.er, mode: state.mode,
+      E: U / d_m,
+      sigma: Q / S_m2,
+      W: 0.5 * C * U * U,
+    };
+  }
+
+  function sensorCalc(t = 0) {
+    const s = state.sensor;
+    const dxEff = s.dx + (s.pulse ? 2.4 * Math.sin(t * 2.15) : 0);
+    const d = Math.max(2, s.d0 - dxEff);
+    const S_m2 = s.S * 1e-6;
+    const C0 = EPS0 * S_m2 / (s.d0 * 1e-6);
+    const C = EPS0 * S_m2 / (d * 1e-6);
+    const gain = s.diff ? 2 : 1;
+    const out = (C - C0) * gain;
+    const sens = (C0 / s.d0) * 1e15 * gain;
+    return {
+      d0: s.d0, d, dxEff, C0, C, out, gain, sens,
+      res: sens > 0 ? 1 / sens : Infinity,
+      diff: s.diff, pulse: s.pulse,
+      dC: C - C0,
+    };
+  }
+
+  /* ------------------------------------------------------------------
+     4. 主界面控件与读数
+  ------------------------------------------------------------------ */
+  function setRangeFill(el) {
+    if (!el) return;
+    const min = +el.min, max = +el.max, val = +el.value;
+    const p = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    el.style.setProperty('--p', `${clamp(p, 0, 100).toFixed(1)}%`);
+  }
+
+  function configureSourceRange(r = compute()) {
+    const src = $('#sourceRange');
+    if (!src) return;
+    if (state.mode === 'charge') {
+      const max = niceMax(Math.max(20, state.Q * 1.25));
+      src.min = '0.01';
+      src.max = String(max);
+      src.step = max <= 50 ? '0.1' : max <= 500 ? '1' : '10';
+      src.value = String(clamp(state.Q, 0.01, max));
+    } else {
+      const max = niceMax(Math.max(300, state.U * 1.25));
+      src.min = '0.1';
+      src.max = String(max);
+      src.step = max <= 300 ? '0.1' : max <= 2000 ? '1' : '10';
+      src.value = String(clamp(state.U, 0.1, max));
+    }
+    setRangeFill(src);
+  }
+
+  function formatSource() {
+    if (state.mode === 'charge') {
+      const max = Math.max(20, state.Q * 1.25);
+      return max > 500 ? nf(state.Q, 0) : max > 50 ? nf(state.Q, 1) : nf(state.Q, 2);
+    }
+    return state.U >= 100 ? nf(state.U, 0) : state.U >= 10 ? nf(state.U, 1) : nf(state.U, 2);
+  }
+
+  function syncControls() {
+    const dRange = $('#dRange'), sRange = $('#sRange'), erRange = $('#erRange');
+    if (dRange) {
+      dRange.value = String(state.d);
+      setRangeFill(dRange);
+    }
+    $('#dVal').textContent = state.d.toFixed(2);
+    if (sRange) {
+      sRange.value = String(state.S);
+      setRangeFill(sRange);
+    }
+    $('#sVal').textContent = String(Math.round(state.S));
+    if (erRange) {
+      erRange.value = String(clamp(state.er, 1, 80));
+      setRangeFill(erRange);
+    }
+    $('#erVal').textContent = erText();
+    $('#sourceVal').textContent = formatSource();
+    setRangeFill($('#sourceRange'));
+
+    const isCharge = state.mode === 'charge';
+    $$('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === state.mode));
+    $('#modeNote').innerHTML = isCharge
+      ? '<b>Q 恒定：</b>改变 d，U = Q/C 随之变化；E 与 d 无关。'
+      : '<b>U 恒定：</b>改变 d，Q = CU 与 E = U/d 随之变化。';
+    $('#sourceLabel').innerHTML = isCharge ? '电荷量 <i>Q</i>' : '电压 <i>U</i>';
+    $('#sourceUnit').textContent = isCharge ? 'nC' : 'V';
+
+    $('#stageModeBadge').textContent = isCharge ? '固定电荷 Q' : '固定电压 U';
+    $('#stageModeBadgeWrap').classList.toggle('is-voltage', !isCharge);
+    $('#stageMaterialBadge').textContent = `${state.material} · εr ${erText()}`;
+
+    $$('.chip').forEach(chip => {
+      chip.classList.toggle('active', Math.abs(+chip.dataset.er - state.er) < 0.01);
+    });
+  }
+
+  function setSiblingUnit(id, unit) {
+    const b = $('#' + id);
+    if (!b) return;
+    const i = b.parentElement.querySelector('i');
+    if (i) i.textContent = unit;
+  }
+
+  function renderNumbers(r) {
+    const C = fmtC(r.C), U = fmtU(r.U), Q = fmtQ(r.Q), E = fmtE(r.E), W = fmtW(r.W);
+    $('#cBig').textContent = C.v;
+    $('#cUnit').textContent = C.u;
+    $('#mU').textContent = U.v;
+    setSiblingUnit('mU', U.u);
+    $('#mQ').textContent = Q.v;
+    setSiblingUnit('mQ', Q.u);
+    $('#mE').textContent = E.v;
+    setSiblingUnit('mE', E.u);
+    $('#mW').textContent = W.v;
+    setSiblingUnit('mW', W.u);
+    $('#mSigma').textContent = nf(r.sigma * 1e6, 3);
+
+    $('#hudD').textContent = state.d.toFixed(2);
+    $('#hudC').textContent = C.v;
+    setSiblingUnit('hudC', C.u);
+    $('#hudE').textContent = E.v;
+    setSiblingUnit('hudE', E.u);
+
+    $('#formulaLive').textContent =
+      `C = ε₀ × ${erText()} × ${state.S} cm² ÷ ${state.d.toFixed(2)} mm`;
+
+    $('#chartCNote').textContent =
+      `当前 d = ${state.d.toFixed(2)} mm · C = ${C.v} ${C.u} · 斜率 −1.00`;
+    $('#chartInvNote').textContent = `直线过原点 · 线性拟合 R² = 1.000 ⇒ C ∝ d⁻¹`;
+    $('#logSlopeBadge').textContent = '斜率 −1.00';
+    $('#sourceVal').textContent = formatSource();
+    setRangeFill($('#sourceRange'));
+  }
+
+  function refreshMain(save = true) {
+    const r = compute();
+    current = r;
+    syncControls();
+    renderNumbers(r);
+    drawCChart(r);
+    drawInvChart(r);
+    if (save) scheduleSave();
+  }
+
+  /* ------------------------------------------------------------------
+     5. 图表绘制
+  ------------------------------------------------------------------ */
+  function fitCanvas(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function axisLabel(v) {
+    const a = Math.abs(v);
+    if (a === 0) return '0';
+    if (a >= 1000) return v.toFixed(0);
+    if (a >= 100) return v.toFixed(0);
+    if (a >= 10) return v.toFixed(1).replace(/\.0$/, '');
+    if (a >= 1) return v.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    if (a >= 0.01) return v.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+    return v.toExponential(1);
+  }
+
+  function chartFrame(ctx, w, h) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = `8px ${MONO}`;
+    ctx.lineWidth = 1;
+  }
+
+  function drawCChart(r) {
+    const canvas = $('#cChart');
+    if (!canvas) return;
+    const { ctx, w, h } = fitCanvas(canvas);
+    chartFrame(ctx, w, h);
+    if (w < 80 || h < 70) return;
+
+    const pad = { l: 45, r: 14, t: 20, b: 27 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    if (pw < 20 || ph < 20) return;
+
+    const K = r.C * r.d_m;
+    const cHigh = K / 1e-4;
+    const cLow = K / 1e-2;
+    const unit = pickUnit(cHigh);
+    const yMin = Math.log10(cLow * 0.72);
+    const yMax = Math.log10(cHigh * 1.28);
+    const xMin = Math.log10(0.1), xMax = 1.0;
+
+    const x = d => pad.l + ((Math.log10(d) - xMin) / (xMax - xMin)) * pw;
+    const y = c => pad.t + (1 - (Math.log10(c) - yMin) / (yMax - yMin)) * ph;
+
+    // grid: y decades
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let e = Math.floor(yMin); e <= Math.ceil(yMax); e++) {
+      const val = Math.pow(10, e);
+      if (val < Math.pow(10, yMin) || val > Math.pow(10, yMax)) continue;
+      const yy = y(val);
+      ctx.strokeStyle = 'rgba(126,184,240,.08)';
+      ctx.setLineDash([2, 5]);
+      ctx.beginPath();
+      ctx.moveTo(pad.l, yy);
+      ctx.lineTo(w - pad.r, yy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#5a7489';
+      ctx.fillText(axisLabel(val * unit.f), pad.l - 7, yy);
+    }
+
+    // grid: x ticks
+    const xTicks = [0.1, 0.2, 0.5, 1, 2, 5, 10];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const d of xTicks) {
+      const xx = x(d);
+      ctx.strokeStyle = 'rgba(126,184,240,.065)';
+      ctx.setLineDash([2, 5]);
+      ctx.beginPath();
+      ctx.moveTo(xx, pad.t);
+      ctx.lineTo(xx, h - pad.b);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#5a7489';
+      ctx.fillText(String(d), xx, h - pad.b + 7);
+    }
+
+    // axes
+    ctx.strokeStyle = 'rgba(126,184,240,.18)';
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t);
+    ctx.lineTo(pad.l, h - pad.b);
+    ctx.lineTo(w - pad.r, h - pad.b);
+    ctx.stroke();
+
+    // area + curve
+    const pts = [];
+    for (let i = 0; i <= 180; i++) {
+      const lx = xMin + (i / 180) * (xMax - xMin);
+      const d = Math.pow(10, lx);
+      const c = K / (d * 1e-3);
+      pts.push([x(d), y(c)]);
+    }
+    const fill = ctx.createLinearGradient(0, pad.t, 0, h - pad.b);
+    fill.addColorStop(0, 'rgba(79,227,255,.16)');
+    fill.addColorStop(1, 'rgba(79,227,255,0)');
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], h - pad.b);
+    pts.forEach(p => ctx.lineTo(p[0], p[1]));
+    ctx.lineTo(pts[pts.length - 1][0], h - pad.b);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.strokeStyle = '#4fe3ff';
+    ctx.lineWidth = 1.7;
+    ctx.shadowColor = 'rgba(79,227,255,.5)';
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
+
+    // current point
+    const px = x(state.d), py = y(r.C);
+    if (Number.isFinite(px) && Number.isFinite(py)) {
+      ctx.setLineDash([3, 4]);
+      ctx.strokeStyle = 'rgba(255,180,84,.45)';
+      ctx.beginPath();
+      ctx.moveTo(px, pad.t);
+      ctx.lineTo(px, h - pad.b);
+      ctx.moveTo(pad.l, py);
+      ctx.lineTo(w - pad.r, py);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.beginPath();
+      ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,180,84,.18)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffcf8a';
+      ctx.shadowColor = 'rgba(255,180,84,.85)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      const C = fmtC(r.C);
+      const label = `${C.v} ${C.u}`;
+      ctx.font = `7.5px ${MONO}`;
+      const tw = ctx.measureText(label).width + 10;
+      let lx = px + 10;
+      if (lx + tw > w - pad.r - 2) lx = px - tw - 10;
+      const ly = clamp(py - 19, pad.t + 2, h - pad.b - 20);
+      ctx.fillStyle = 'rgba(7,17,29,.85)';
+      roundRect(ctx, lx, ly, tw, 16, 4);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,180,84,.22)';
+      ctx.stroke();
+      ctx.fillStyle = '#ffd29c';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, lx + tw / 2, ly + 8.5);
+    }
+
+    // labels
+    ctx.fillStyle = '#658096';
+    ctx.font = `7.2px ${MONO}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`C / ${unit.u}`, pad.l, 4);
+    ctx.textAlign = 'right';
+    ctx.fillText('d / mm', w - pad.r, h - 11);
+  }
+
+  function drawInvChart(r) {
+    const canvas = $('#invChart');
+    if (!canvas) return;
+    const { ctx, w, h } = fitCanvas(canvas);
+    chartFrame(ctx, w, h);
+    if (w < 80 || h < 70) return;
+
+    const pad = { l: 45, r: 14, t: 20, b: 27 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const K = r.C * r.d_m;
+    const cMin = K / 1e-2;
+    const invMax = 1 / (cMin * 1e12);
+    const yMax = niceMax(invMax * 1.08);
+
+    const x = d => pad.l + (d / 10) * pw;
+    const y = v => pad.t + (1 - v / yMax) * ph;
+
+    // grid
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+      const v = (yMax / 4) * i;
+      const yy = y(v);
+      ctx.strokeStyle = 'rgba(126,184,240,.075)';
+      ctx.setLineDash([2, 5]);
+      ctx.beginPath();
+      ctx.moveTo(pad.l, yy);
+      ctx.lineTo(w - pad.r, yy);
+      ctx.stroke();
+      ctx.fillStyle = '#5a7489';
+      ctx.fillText(i === 0 ? '0' : axisLabel(v), pad.l - 7, yy);
+    }
+    ctx.setLineDash([]);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i <= 5; i++) {
+      const d = i * 2;
+      const xx = x(d);
+      ctx.strokeStyle = 'rgba(126,184,240,.065)';
+      ctx.setLineDash([2, 5]);
+      ctx.beginPath();
+      ctx.moveTo(xx, pad.t);
+      ctx.lineTo(xx, h - pad.b);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#5a7489';
+      ctx.fillText(String(d), xx, h - pad.b + 7);
+    }
+    ctx.strokeStyle = 'rgba(126,184,240,.18)';
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t);
+    ctx.lineTo(pad.l, h - pad.b);
+    ctx.lineTo(w - pad.r, h - pad.b);
+    ctx.stroke();
+
+    // line
+    const x1 = x(0), y1 = y(0);
+    const x2 = x(10), y2 = y(1 / ((K / 1e-2) * 1e12));
+    const fill = ctx.createLinearGradient(0, pad.t, 0, h - pad.b);
+    fill.addColorStop(0, 'rgba(255,180,84,.15)');
+    fill.addColorStop(1, 'rgba(255,180,84,0)');
+    ctx.beginPath();
+    ctx.moveTo(x1, h - pad.b);
+    ctx.lineTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x2, h - pad.b);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = '#ffb454';
+    ctx.lineWidth = 1.6;
+    ctx.shadowColor = 'rgba(255,180,84,.45)';
+    ctx.shadowBlur = 7;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
+
+    // current point
+    const px = x(state.d);
+    const inv = 1 / (r.C * 1e12);
+    const py = y(inv);
+    if (Number.isFinite(px) && Number.isFinite(py)) {
+      ctx.setLineDash([3, 4]);
+      ctx.strokeStyle = 'rgba(79,227,255,.4)';
+      ctx.beginPath();
+      ctx.moveTo(px, pad.t);
+      ctx.lineTo(px, h - pad.b);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(px, py, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(79,227,255,.18)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px, py, 2.8, 0, Math.PI * 2);
+      ctx.fillStyle = '#b6f6ff';
+      ctx.shadowColor = 'rgba(79,227,255,.9)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.fillStyle = '#658096';
+    ctx.font = `7.2px ${MONO}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('1/C / pF⁻¹', pad.l, 4);
+    ctx.textAlign = 'right';
+    ctx.fillText('d / mm', w - pad.r, h - 11);
+  }
+
+  /* ------------------------------------------------------------------
+     6. 主舞台 Canvas
+  ------------------------------------------------------------------ */
+  function gapMax(h) { return Math.min(230, h * 0.40); }
+  function gapPxFor(d, h) {
+    const min = 32, max = gapMax(h);
+    return min + Math.pow(clamp(d, 0.1, 10) / 10, 0.62) * (max - min);
+  }
+  function dFromGap(gap, h) {
+    const min = 32, max = gapMax(h);
+    const t = clamp((gap - min) / (max - min), 0, 1);
+    return 10 * Math.pow(t, 1 / 0.62);
+  }
+
+  function stageGeom(w, h) {
+    const pad = Math.max(44, Math.min(82, w * 0.085));
+    const maxPlate = Math.max(120, w - pad * 2 - 62);
+    const plateW = Math.min(maxPlate, Math.max(160, 190 + 390 * Math.sqrt(clamp(state.S, 10, 500) / 500)));
+    const cx = w / 2 + 2;
+    const cy = h * 0.455;
+    const gap = gapPxFor(state.d, h);
+    const topY = cy - gap / 2;
+    const bottomY = cy + gap / 2;
+    return {
+      w, h, cx, cy, gap, plateW,
+      left: cx - plateW / 2, right: cx + plateW / 2,
+      topY, bottomY, plateH: 16,
+      handleX: Math.min(w - 25, cx + plateW / 2 + 27),
+      dimX: Math.max(13, cx - plateW / 2 - 33),
+    };
+  }
+
+  function drawStageBackground(ctx, w, h, g) {
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#071422');
+    bg.addColorStop(0.55, '#06101c');
+    bg.addColorStop(1, '#040b14');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    const glow = ctx.createRadialGradient(g.cx, g.cy, 8, g.cx, g.cy, Math.max(w, h) * 0.64);
+    glow.addColorStop(0, 'rgba(27,104,134,.16)');
+    glow.addColorStop(0.55, 'rgba(12,56,78,.07)');
+    glow.addColorStop(1, 'rgba(3,9,16,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.fillStyle = 'rgba(104,174,206,.16)';
+    for (let x = 18; x < w; x += 26) {
+      for (let y = 18; y < h; y += 26) {
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(126,184,240,.045)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(16, h - 52);
+    ctx.lineTo(w - 16, h - 52);
+    ctx.stroke();
+  }
+
+  function drawDipoles(ctx, g, t) {
+    const er = state.er;
+    if (er < 1.08) return;
+    const alpha = clamp((er - 1) / 38, 0.06, 0.35);
+    const cols = Math.max(3, Math.floor(g.plateW / 74));
+    const rows = Math.max(2, Math.floor(g.gap / 46));
+    const top = g.topY + 11;
+    const bottom = g.bottomY - 11;
+    const span = g.plateW - 28;
+    if (bottom - top < 14) return;
+
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const x = g.cx - span / 2 + (i + 0.5) * (span / cols);
+        const y = top + (j + 0.5) * ((bottom - top) / rows);
+        const sway = Math.sin(t * 0.0015 + i * 1.7 + j) * 1.5;
+        const len = 7;
+        ctx.strokeStyle = `rgba(165,242,255,${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + sway, y - len / 2);
+        ctx.lineTo(x + sway, y + len / 2);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(255,196,120,${alpha + 0.12})`;
+        ctx.beginPath();
+        ctx.arc(x + sway, y - len / 2, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(130,244,255,${alpha + 0.12})`;
+        ctx.beginPath();
+        ctx.arc(x + sway, y + len / 2, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawField(ctx, g, r, t) {
+    const norm = clamp(Math.log10(1 + r.E / 1000) / Math.log10(1 + 4e6), 0.12, 1);
+    const count = Math.max(7, Math.min(15, Math.round(g.plateW / 46)));
+    const top = g.topY + g.plateH + 3;
+    const bottom = g.bottomY - 3;
+    if (bottom - top < 18) return;
+    const span = g.plateW - 36;
+
+    for (let i = 0; i < count; i++) {
+      const x = g.cx - span / 2 + (i / (count - 1)) * span;
+      ctx.strokeStyle = `rgba(105,232,255,${0.06 + norm * 0.24})`;
+      ctx.lineWidth = i % 3 === 0 ? 1.1 : 0.8;
+      ctx.beginPath();
+      ctx.moveTo(x, top);
+      ctx.lineTo(x, bottom);
+      ctx.stroke();
+
+      if (bottom - top > 42) {
+        const ay = top + (bottom - top) * 0.5;
+        ctx.strokeStyle = `rgba(150,245,255,${0.18 + norm * 0.3})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - 3, ay - 4);
+        ctx.lineTo(x, ay);
+        ctx.lineTo(x + 3, ay - 4);
+        ctx.stroke();
+      }
+
+      const speed = 0.000026 * (0.35 + norm);
+      for (let k = 0; k < 3; k++) {
+        const u = ((t * speed + i * 0.137 + k / 3) % 1 + 1) % 1;
+        const yy = top + u * (bottom - top);
+        const xx = x + Math.sin(u * 7 + i) * 1.2;
+        ctx.fillStyle = `rgba(195,252,255,${0.16 + norm * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(xx, yy, 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawPlate(ctx, g, kind) {
+    const y = kind === 'top' ? g.topY : g.bottomY;
+    const grad = ctx.createLinearGradient(0, y, 0, y + g.plateH);
+    if (kind === 'top') {
+      grad.addColorStop(0, '#ffe3b6');
+      grad.addColorStop(0.28, '#dda25c');
+      grad.addColorStop(0.55, '#a96c31');
+      grad.addColorStop(0.82, '#69401d');
+      grad.addColorStop(1, '#2e1b0b');
+    } else {
+      grad.addColorStop(0, '#d6fbff');
+      grad.addColorStop(0.28, '#7ee7f3');
+      grad.addColorStop(0.55, '#2c9daf');
+      grad.addColorStop(0.82, '#145767');
+      grad.addColorStop(1, '#082a37');
+    }
+
+    ctx.save();
+    ctx.shadowColor = kind === 'top' ? 'rgba(255,180,84,.55)' : 'rgba(79,227,255,.5)';
+    ctx.shadowBlur = 19;
+    ctx.shadowOffsetY = 3;
+    roundRect(ctx, g.left, y, g.plateW, g.plateH, 3.5);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = kind === 'top' ? 'rgba(255,224,173,.8)' : 'rgba(190,250,255,.8)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, g.left, y, g.plateW, g.plateH, 3.5);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
+    ctx.beginPath();
+    ctx.moveTo(g.left + 5, y + 3.5);
+    ctx.lineTo(g.right - 5, y + 3.5);
+    ctx.stroke();
+  }
+
+  function drawCharges(ctx, g, r) {
+    if (g.gap < 46) return;
+    const n = clamp(Math.round(3 + Math.log10(state.Q * 1e9 + 1) * 4), 4, 10);
+    const span = g.plateW * 0.72;
+    const topY = g.topY + g.plateH + 9;
+    const bottomY = g.bottomY - 9;
+
+    for (let i = 0; i < n; i++) {
+      const x = g.cx - span / 2 + (i / (n - 1)) * span;
+
+      ctx.beginPath();
+      ctx.arc(x, topY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(18,13,8,.82)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,180,84,.78)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.strokeStyle = '#ffc16e';
+      ctx.beginPath();
+      ctx.moveTo(x - 2.5, topY);
+      ctx.lineTo(x + 2.5, topY);
+      ctx.moveTo(x, topY - 2.5);
+      ctx.lineTo(x, topY + 2.5);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, bottomY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(5,17,24,.86)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(79,227,255,.7)';
+      ctx.stroke();
+      ctx.strokeStyle = '#8ff0ff';
+      ctx.beginPath();
+      ctx.moveTo(x - 2.5, bottomY);
+      ctx.lineTo(x + 2.5, bottomY);
+      ctx.stroke();
+    }
+  }
+
+  function drawDimensionS(ctx, g) {
+    const y = g.topY - 28;
+    if (y < 48) return;
+    ctx.strokeStyle = 'rgba(139,178,205,.42)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(g.left, y);
+    ctx.lineTo(g.right, y);
+    ctx.moveTo(g.left, y - 5);
+    ctx.lineTo(g.left, y + 5);
+    ctx.moveTo(g.right, y - 5);
+    ctx.lineTo(g.right, y + 5);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(139,178,205,.72)';
+    ctx.beginPath();
+    ctx.moveTo(g.left, y); ctx.lineTo(g.left + 6, y - 3); ctx.lineTo(g.left + 6, y + 3); ctx.closePath();
+    ctx.moveTo(g.right, y); ctx.lineTo(g.right - 6, y - 3); ctx.lineTo(g.right - 6, y + 3); ctx.closePath();
+    ctx.fill();
+
+    const label = `S = ${Math.round(state.S)} cm²`;
+    ctx.font = `7.6px ${MONO}`;
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = '#071422';
+    roundRect(ctx, g.cx - tw / 2 - 6, y - 8.5, tw + 12, 15, 5);
+    ctx.fill();
+    ctx.fillStyle = '#9fc1d8';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, g.cx, y - 0.5);
+  }
+
+  function drawDimensionD(ctx, g) {
+    const x = g.dimX;
+    const y1 = g.topY + g.plateH / 2;
+    const y2 = g.bottomY + g.plateH / 2;
+    ctx.strokeStyle = 'rgba(255,180,84,.48)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x, y1);
+    ctx.lineTo(x, y2);
+    ctx.moveTo(x - 4, y1);
+    ctx.lineTo(x + 4, y1);
+    ctx.moveTo(x - 4, y2);
+    ctx.lineTo(x + 4, y2);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,180,84,.62)';
+    ctx.beginPath();
+    ctx.moveTo(x, y1); ctx.lineTo(x - 3, y1 + 6); ctx.lineTo(x + 3, y1 + 6); ctx.closePath();
+    ctx.moveTo(x, y2); ctx.lineTo(x - 3, y2 - 6); ctx.lineTo(x + 3, y2 - 6); ctx.closePath();
+    ctx.fill();
+
+    const mid = (g.topY + g.bottomY) / 2 + g.plateH / 2;
+    ctx.save();
+    ctx.translate(Math.max(8, x - 8), mid);
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = `7.6px ${MONO}`;
+    ctx.fillStyle = '#d4a05b';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`d = ${state.d.toFixed(2)} mm`, 0, 0);
+    ctx.restore();
+  }
+
+  function drawHandle(ctx, g) {
+    const hx = g.handleX;
+    const y1 = Math.max(74, g.topY - 24);
+    const y2 = Math.min(g.h - 74, g.bottomY + 24);
+    const knobY = g.topY + g.plateH / 2;
+
+    ctx.strokeStyle = 'rgba(126,184,240,.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    ctx.beginPath();
+    ctx.moveTo(g.right + 3, knobY);
+    ctx.lineTo(hx - 11, knobY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = 'rgba(126,184,240,.22)';
+    ctx.beginPath();
+    ctx.moveTo(hx, y1);
+    ctx.lineTo(hx, y2);
+    ctx.stroke();
+
+    for (let y = y1 + 10; y < y2; y += 12) {
+      ctx.strokeStyle = 'rgba(126,184,240,.13)';
+      ctx.beginPath();
+      ctx.moveTo(hx - 3, y);
+      ctx.lineTo(hx + 3, y);
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(hx, knobY, 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#0a1a2a';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,180,84,.8)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.strokeStyle = '#ffc16e';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(hx - 3.5, knobY - 2);
+    ctx.lineTo(hx, knobY - 5.5);
+    ctx.lineTo(hx + 3.5, knobY - 2);
+    ctx.moveTo(hx - 3.5, knobY + 2);
+    ctx.lineTo(hx, knobY + 5.5);
+    ctx.lineTo(hx + 3.5, knobY + 2);
+    ctx.stroke();
+
+    ctx.font = `6.5px ${MONO}`;
+    ctx.fillStyle = 'rgba(180,211,230,.55)';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('DRAG', hx + 14, knobY);
+  }
+
+  function drawStage(t) {
+    const canvas = $('#stage');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 10 || rect.height < 10) return;
+    const { ctx, w, h } = fitCanvas(canvas);
+    const g = stageGeom(w, h);
+    const r = current || compute();
+
+    drawStageBackground(ctx, w, h, g);
+    drawDimensionS(ctx, g);
+
+    // 介质
+    if (state.er > 1.02) {
+      const a = clamp((state.er - 1) / 80, 0, 1);
+      const fill = ctx.createLinearGradient(0, g.topY, 0, g.bottomY);
+      fill.addColorStop(0, `rgba(55,206,232,${0.03 + a * 0.11})`);
+      fill.addColorStop(0.5, `rgba(55,206,232,${0.015 + a * 0.06})`);
+      fill.addColorStop(1, `rgba(55,206,232,${0.03 + a * 0.11})`);
+      ctx.fillStyle = fill;
+      ctx.fillRect(g.left + 4, g.topY + g.plateH, g.plateW - 8, Math.max(0, g.bottomY - g.topY - g.plateH));
+    }
+
+    drawDipoles(ctx, g, t);
+    drawField(ctx, g, r, t);
+
+    // 极板
+    drawPlate(ctx, g, 'top');
+    drawPlate(ctx, g, 'bottom');
+    drawCharges(ctx, g, r);
+
+    // 标注
+    ctx.font = `600 9px ${MONO}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillText('A', g.left + 10, g.topY + 8.5);
+    ctx.fillText('B', g.left + 10, g.bottomY + 8.5);
+
+    ctx.font = `600 10px ${MONO}`;
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffc16e';
+    ctx.fillText('+Q', g.right - 2, g.topY - 10);
+    ctx.fillStyle = '#8ff0ff';
+    ctx.fillText('−Q', g.right - 2, g.bottomY + g.plateH + 11);
+
+    drawDimensionD(ctx, g);
+    drawHandle(ctx, g);
+
+    // 电场强度提示
+    if (g.gap > 60) {
+      const ex = g.right - 22;
+      const ey = (g.topY + g.bottomY) / 2 + g.plateH / 2;
+      ctx.strokeStyle = 'rgba(150,245,255,.32)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(ex, ey - 10);
+      ctx.lineTo(ex, ey + 10);
+      ctx.moveTo(ex - 2.5, ey + 7);
+      ctx.lineTo(ex, ey + 10);
+      ctx.lineTo(ex + 2.5, ey + 7);
+      ctx.stroke();
+      ctx.font = `7px ${MONO}`;
+      ctx.fillStyle = 'rgba(150,245,255,.55)';
+      ctx.textAlign = 'left';
+      ctx.fillText('E', ex + 5, ey);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     7. 主舞台交互
+  ------------------------------------------------------------------ */
+  function stagePoint(e) {
+    const rect = $('#stage').getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      w: rect.width,
+      h: rect.height,
+    };
+  }
+
+  function hitTopPlate(p) {
+    const g = stageGeom(p.w, p.h);
+    return p.x > g.left - 16 && p.x < g.handleX + 18 && Math.abs(p.y - (g.topY + g.plateH / 2)) < 28;
+  }
+
+  function bindStage() {
+    const stage = $('#stage');
+    if (!stage) return;
+    stage.tabIndex = 0;
+    stage.style.touchAction = 'none';
+    stage.addEventListener('pointerdown', e => {
+      const p = stagePoint(e);
+      if (!hitTopPlate(p)) return;
+      dragging = true;
+      stage.setPointerCapture(e.pointerId);
+      stage.style.cursor = 'grabbing';
+      $('#stageHint').textContent = '上下拖动，松开完成调节';
+      e.preventDefault();
+    });
+
+    stage.addEventListener('pointermove', e => {
+      const p = stagePoint(e);
+      if (!dragging) {
+        stage.style.cursor = hitTopPlate(p) ? 'grab' : 'default';
+        return;
+      }
+      const g = stageGeom(p.w, p.h);
+      const raw = dFromGap(2 * (g.cy - p.y), p.h);
+      state.d = Math.round(clamp(raw, 0.1, 10) * 100) / 100;
+      refreshMain(false);
+      e.preventDefault();
+    });
+
+    const endDrag = e => {
+      if (!dragging) return;
+      dragging = false;
+      stage.style.cursor = 'grab';
+      saveState();
+      $('#stageHint').textContent = '已更新 · 可继续拖动，或用右侧滑杆微调';
+      window.setTimeout(() => {
+        if (!dragging) $('#stageHint').textContent = '拖动上极板，观察电容 C 的变化';
+      }, 2600);
+      if (e && e.pointerId != null) {
+        try { stage.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+      }
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+    stage.addEventListener('pointerleave', () => {
+      if (!dragging) stage.style.cursor = 'default';
+    });
+
+    stage.addEventListener('wheel', e => {
+      if (e.ctrlKey) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 0.5 : 0.05;
+      state.d = Math.round(clamp(state.d + (e.deltaY > 0 ? step : -step), 0.1, 10) * 100) / 100;
+      refreshMain();
+    }, { passive: false });
+
+    stage.addEventListener('dblclick', () => {
+      state.d = DEFAULTS.d;
+      refreshMain();
+      toast('间距已复位为 2.00 mm');
+    });
+
+    stage.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const step = e.shiftKey ? 0.5 : 0.05;
+      state.d = Math.round(clamp(state.d + (e.key === 'ArrowDown' ? step : -step), 0.1, 10) * 100) / 100;
+      refreshMain();
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     8. 传感器
+  ------------------------------------------------------------------ */
+  function syncSensorControls() {
+    const s = state.sensor;
+    $('#sdRange').value = String(s.d0);
+    $('#ssRange').value = String(s.S);
+    $('#sxRange').value = String(s.dx);
+    $('#sdVal').textContent = nf(s.d0, 0);
+    $('#ssVal').textContent = s.S.toFixed(1);
+    $('#sxVal').textContent = signed(s.dx, 1);
+    setRangeFill($('#sdRange'));
+    setRangeFill($('#ssRange'));
+    setRangeFill($('#sxRange'));
+    $('#diffToggle').checked = s.diff;
+    $('#pulseToggle').checked = s.pulse;
+  }
+
+  function renderSensorNumbers(sc, t = 0) {
+    $('#sensorC0').textContent = nf(sc.C0 * 1e12, 3);
+    $('#sensorC').textContent = nf(sc.C * 1e12, 3);
+    $('#sensorSens').textContent = nf(sc.sens, 2);
+    $('#sensorRes').textContent = Number.isFinite(sc.res) ? nf(sc.res, 2) : '—';
+    $('#sensorHudDelta').textContent = signed(sc.out * 1e15, 2);
+    $('#sensorHudDelta').style.color = sc.out >= 0 ? '#8ff0ff' : '#ffc16e';
+    $('#sensorHudX').textContent = signed(sc.dxEff, 1);
+    $('#sensorDeltaLabel').textContent = sc.diff ? '差分输出 ΔC' : '单端输出 ΔC';
+    $('#sensorDiffBadge').textContent = sc.diff ? '差分模式 ×2' : '单端模式 ×1';
+    $('#sensorGapLabel').textContent = `d = ${nf(sc.d, 1)} μm`;
+    $('#sensorGapLabel').setAttribute('fill', sc.d < 20 ? '#ffc16e' : '#8fe8f4');
+    $('#sensorChartNote').textContent = `${sc.diff ? '差分' : '单端'} · 灵敏度 ${nf(sc.sens, 2)} fF/μm`;
+
+    const rings = $$('#pulseRings ellipse');
+    rings.forEach((el, i) => {
+      el.setAttribute('opacity', sc.pulse ? String(0.12 + 0.3 * (0.5 + 0.5 * Math.sin(t * 3.2 + i * 1.7))) : '0.22');
+    });
+  }
+
+  function updateSensorSVG(sc) {
+    const offset = clamp(sc.dxEff * 1.8, -14, 16);
+    $('#sensorProbeTop').setAttribute('transform', `translate(0 ${(-offset).toFixed(2)})`);
+    const y1 = 297 - offset;
+    const y2 = 315;
+    $('#sensorGapLine').setAttribute('y1', y1.toFixed(1));
+    $('#sensorGapTickTop').setAttribute('d', `M526 ${y1.toFixed(1)}h8`);
+    $('#sensorGapLabel').setAttribute('y', ((y1 + y2) / 2 + 3).toFixed(1));
+  }
+
+  function drawSensorChart(sc) {
+    const canvas = $('#sensorChart');
+    if (!canvas) return;
+    const { ctx, w, h } = fitCanvas(canvas);
+    chartFrame(ctx, w, h);
+    if (w < 60 || h < 50) return;
+
+    const pad = { l: 35, r: 10, t: 8, b: 19 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const gain = sc.diff ? 2 : 1;
+    const S_m2 = state.sensor.S * 1e-6;
+    const C0 = sc.C0;
+
+    const curve = [];
+    let maxAbs = 0;
+    for (let i = 0; i <= 80; i++) {
+      const dx = -10 + (i / 80) * 20;
+      const d = Math.max(2, state.sensor.d0 - dx);
+      const C = EPS0 * S_m2 / (d * 1e-6);
+      const out = (C - C0) * gain * 1e15;
+      curve.push([dx, out]);
+      maxAbs = Math.max(maxAbs, Math.abs(out));
+    }
+    const yMax = Math.max(2, niceMax(maxAbs * 1.1));
+    const x = dx => pad.l + ((dx + 10) / 20) * pw;
+    const y = v => pad.t + (1 - (v + yMax) / (2 * yMax)) * ph;
+
+    // grid
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = -2; i <= 2; i++) {
+      const v = (yMax / 2) * i;
+      const yy = y(v);
+      ctx.strokeStyle = i === 0 ? 'rgba(126,184,240,.18)' : 'rgba(126,184,240,.07)';
+      ctx.setLineDash(i === 0 ? [] : [2, 5]);
+      ctx.beginPath();
+      ctx.moveTo(pad.l, yy);
+      ctx.lineTo(w - pad.r, yy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#526c82';
+      ctx.fillText(axisLabel(v), pad.l - 5, yy);
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const dx of [-10, 0, 10]) {
+      const xx = x(dx);
+      ctx.strokeStyle = 'rgba(126,184,240,.07)';
+      ctx.beginPath();
+      ctx.moveTo(xx, pad.t);
+      ctx.lineTo(xx, h - pad.b);
+      ctx.stroke();
+      ctx.fillStyle = '#526c82';
+      ctx.fillText(String(dx), xx, h - pad.b + 4);
+    }
+
+    // linear approximation
+    const linSens = (C0 / state.sensor.d0) * 1e15 * gain;
+    ctx.beginPath();
+    ctx.moveTo(x(-10), y(linSens * -10));
+    ctx.lineTo(x(10), y(linSens * 10));
+    ctx.strokeStyle = 'rgba(255,180,84,.62)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // exact curve
+    ctx.beginPath();
+    curve.forEach(([dx, v], i) => {
+      const px = x(dx), py = y(v);
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    });
+    ctx.strokeStyle = '#4fe3ff';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(79,227,255,.5)';
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
+
+    // current
+    const cx = x(clamp(sc.dxEff, -10, 10));
+    const cy = y(sc.out * 1e15);
+    ctx.setLineDash([2, 3]);
+    ctx.strokeStyle = 'rgba(255,180,84,.35)';
+    ctx.beginPath();
+    ctx.moveTo(cx, pad.t);
+    ctx.lineTo(cx, h - pad.b);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffcf8a';
+    ctx.shadowColor = 'rgba(255,180,84,.9)';
+    ctx.shadowBlur = 7;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#60798f';
+    ctx.font = `6.6px ${MONO}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('ΔC / fF', pad.l, 1);
+    ctx.textAlign = 'right';
+    ctx.fillText('Δx / μm', w - pad.r, h - 9);
+  }
+
+  function refreshSensor(opts = {}) {
+    const live = opts.live === true;
+    const t = performance.now() / 1000;
+    const sc = sensorCalc(t);
+    currentSensor = sc;
+    if (!live) syncSensorControls();
+    renderSensorNumbers(sc, t);
+    updateSensorSVG(sc);
+    drawSensorChart(sc);
+    if (!live) scheduleSave();
+  }
+
+  function bindSensor() {
+    $('#sdRange').addEventListener('input', e => {
+      state.sensor.d0 = +e.target.value;
+      state.sensor.dx = clamp(state.sensor.dx, -(state.sensor.d0 - 2), state.sensor.d0 - 2);
+      refreshSensor();
+    });
+    $('#ssRange').addEventListener('input', e => {
+      state.sensor.S = +e.target.value;
+      refreshSensor();
+    });
+    $('#sxRange').addEventListener('input', e => {
+      state.sensor.dx = +e.target.value;
+      refreshSensor();
+    });
+    $('#diffToggle').addEventListener('change', e => {
+      state.sensor.diff = e.target.checked;
+      refreshSensor();
+      toast(e.target.checked ? '已启用差分结构：灵敏度 ×2' : '已切换为单端结构：灵敏度 ×1');
+    });
+    $('#pulseToggle').addEventListener('change', e => {
+      state.sensor.pulse = e.target.checked;
+      refreshSensor();
+      toast(e.target.checked ? '正在模拟 ±2.4 μm 组织搏动' : '已停止搏动模拟');
+    });
+    $('#sensorReset').addEventListener('click', () => {
+      state.sensor = { ...SENSOR_DEFAULTS };
+      refreshSensor();
+      toast('传感参数已复位');
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     9. 数据表 / CSV
+  ------------------------------------------------------------------ */
+  function renderRecords() {
+    const body = $('#recordBody');
+    if (!body) return;
+    body.innerHTML = state.records.map((r, i) => {
+      const t = new Date(r.t);
+      const time = Number.isFinite(t.getTime())
+        ? `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}`
+        : '—';
+      return `<tr>
+        <td><span class="row-dot"></span>${String(i + 1).padStart(2, '0')}</td>
+        <td>${r.d.toFixed(2)}</td>
+        <td>${(r.C * 1e12).toFixed(2)}</td>
+        <td>${r.U.toFixed(1)}</td>
+        <td>${(r.Q * 1e9).toFixed(2)}</td>
+        <td>${time}</td>
+      </tr>`;
+    }).join('');
+    $('#tableEmpty').hidden = state.records.length > 0;
+    $('#recordCount').textContent = `${state.records.length} 条记录`;
+  }
+
+  function recordCurrent() {
+    const r = compute();
+    state.records.push({
+      d: state.d, C: r.C, U: r.U, Q: r.Q, t: new Date().toISOString(),
+    });
+    if (state.records.length > 40) state.records = state.records.slice(-40);
+    renderRecords();
+    saveState();
+    toast(`已记录第 ${state.records.length} 组：d = ${state.d.toFixed(2)} mm，C = ${fmtC(r.C).v} ${fmtC(r.C).u}`);
+  }
+
+  function exportCsv() {
+    if (!state.records.length) {
+      toast('还没有实验数据，请先点击「记录当前」', 'error');
+      return;
+    }
+    const rows = [['序号', 'd/mm', 'C/pF', 'U/V', 'Q/nC', '时间']];
+    state.records.forEach((r, i) => {
+      rows.push([i + 1, r.d.toFixed(2), (r.C * 1e12).toFixed(3), r.U.toFixed(3), (r.Q * 1e9).toFixed(3), r.t]);
+    });
+    const csv = '\uFEFF' + rows.map(row => row.join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '平行板电容器实验数据.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(`已导出 ${state.records.length} 组数据`);
+  }
+
+  function bindData() {
+    $('#recordBtn').addEventListener('click', recordCurrent);
+    $('#csvBtn').addEventListener('click', exportCsv);
+    $('#clearBtn').addEventListener('click', () => {
+      if (!state.records.length) { toast('还没有可清空的记录'); return; }
+      state.records = [];
+      renderRecords();
+      saveState();
+      toast('实验记录已清空');
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     10. 参数控件 / 验证实验
+  ------------------------------------------------------------------ */
+  function setMode(mode) {
+    if (mode !== 'charge' && mode !== 'voltage') return;
+    if (mode === state.mode) return;
+    const r = compute();
+    if (mode === 'voltage') {
+      state.U = clamp(r.U, 0.1, 1e6);
+    } else {
+      state.Q = clamp(r.Q * 1e9, 0.01, 1e7);
+    }
+    state.mode = mode;
+    configureSourceRange(compute());
+    refreshMain();
+    toast(mode === 'voltage'
+      ? `已切换为固定电压：U = ${fmtU(state.U).v} ${fmtU(state.U).u}`
+      : `已切换为固定电荷：Q = ${formatSource()} nC`);
+  }
+
+  function findMaterial(er) {
+    const chip = $$('.chip').find(c => Math.abs(+c.dataset.er - er) < 0.01);
+    return chip ? chip.dataset.name : '自定义介质';
+  }
+
+  function applyD(next) {
+    state.d = Math.round(clamp(next, 0.1, 10) * 100) / 100;
+    refreshMain();
+  }
+
+  function verify(action) {
+    const before = compute();
+    let label = '';
+    if (action === 'd2') {
+      state.d = Math.round(clamp(state.d * 2, 0.1, 10) * 100) / 100;
+      label = 'd × 2';
+    } else if (action === 'dhalf') {
+      state.d = Math.round(clamp(state.d / 2, 0.1, 10) * 100) / 100;
+      label = 'd ÷ 2';
+    } else if (action === 's2') {
+      state.S = clamp(Math.round(state.S * 2), 10, 500);
+      label = 'S × 2';
+    } else if (action === 'er2') {
+      state.er = clamp(state.er * 2, 1, 80);
+      state.material = findMaterial(state.er);
+      label = 'εr × 2';
+    }
+    refreshMain();
+    const after = compute();
+    const ratio = after.C / before.C;
+    let expected = 1;
+    if (action === 'd2' || action === 'dhalf') expected = before.d / after.d;
+    if (action === 's2') expected = after.S / before.S;
+    if (action === 'er2') expected = after.er / before.er;
+    const ok = Math.abs(ratio - expected) < 0.025;
+    $('#verifyMsg').innerHTML =
+      `<b>${label}</b>：C 由 <b>${fmtC(before.C).v} ${fmtC(before.C).u}</b> 变为 ` +
+      `<b>${fmtC(after.C).v} ${fmtC(after.C).u}</b>（×${ratio.toFixed(3)}）。` +
+      `<span class="${ok ? 'ok' : 'warn'}">${ok ? '与理论预期一致 ✓' : '已达到参数边界，未完全按倍率变化'}</span>`;
+    toast(ok ? '控制变量验证完成，符合理论预期' : '参数已到上下限，结果未完全按倍率变化');
+  }
+
+  function bindControls() {
+    $$('.mode-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+
+    $('#dRange').addEventListener('input', e => {
+      state.d = +e.target.value;
+      refreshMain();
+    });
+    $('#sRange').addEventListener('input', e => {
+      state.S = +e.target.value;
+      refreshMain();
+    });
+    $('#erRange').addEventListener('input', e => {
+      state.er = +e.target.value;
+      state.material = findMaterial(state.er);
+      refreshMain();
+    });
+    $$('.chip').forEach(chip => chip.addEventListener('click', () => {
+      state.er = +chip.dataset.er;
+      state.material = chip.dataset.name;
+      refreshMain();
+      toast(`介质已切换为${chip.dataset.name}（εr = ${erText()}）`);
+    }));
+    $('#sourceRange').addEventListener('input', e => {
+      const v = +e.target.value;
+      if (state.mode === 'charge') state.Q = v;
+      else state.U = v;
+      refreshMain();
+    });
+
+    const reset = () => {
+      Object.assign(state, {
+        mode: DEFAULTS.mode, d: DEFAULTS.d, S: DEFAULTS.S,
+        er: DEFAULTS.er, Q: DEFAULTS.Q, U: DEFAULTS.U, material: DEFAULTS.material,
+      });
+      configureSourceRange(compute());
+      refreshMain();
+      saveState();
+      toast('参数已恢复默认：d = 2.00 mm，S = 100 cm²，空气介质');
+    };
+    $('#resetView').addEventListener('click', reset);
+    $('#resetParams').addEventListener('click', reset);
+
+    $$('.verify-btn').forEach(btn => btn.addEventListener('click', () => verify(btn.dataset.action)));
+  }
+
+  /* ------------------------------------------------------------------
+     11. 答卷 / 复制 / 打印 / 署名
+  ------------------------------------------------------------------ */
+  function profileName() { return state.profile.name.trim() || '未署名'; }
+  function profileId() { return state.profile.id.trim() || '—'; }
+
+  function renderProfile() {
+    const name = profileName(), id = profileId();
+    $('#topName').textContent = name;
+    $('#topId').textContent = id;
+    $('#topAvatar').textContent = Array.from(name)[0] || '?';
+    $('#footerName').textContent = `${name} · ${id}`;
+  }
+
+  function initProfile() {
+    $('#studentName').value = state.profile.name;
+    $('#studentId').value = state.profile.id;
+    $('#studentName').maxLength = 20;
+    $('#studentId').maxLength = 24;
+    renderProfile();
+  }
+
+  function bindProfile() {
+    $('#studentName').addEventListener('input', e => {
+      state.profile.name = e.target.value.slice(0, 20);
+      renderProfile();
+      scheduleSave();
+    });
+    $('#studentId').addEventListener('input', e => {
+      state.profile.id = e.target.value.slice(0, 24);
+      renderProfile();
+      scheduleSave();
+    });
+    const chip = $('#studentChip');
+    chip.tabIndex = 0;
+    chip.setAttribute('role', 'button');
+    chip.setAttribute('aria-label', '跳到作业答卷修改署名');
+    const goAnswers = () => $('#answers').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    chip.addEventListener('click', goAnswers);
+    chip.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goAnswers(); }
+    });
+  }
+
+  function copyFallback(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+
+  async function copyText(text, successMessage) {
+    if (!text) { toast('没有可复制的内容', 'error'); return false; }
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else if (!copyFallback(text)) {
+        throw new Error('copy failed');
+      }
+    } catch (_) {
+      if (!copyFallback(text)) {
+        toast('复制失败，请手动选择文本复制', 'error');
+        return false;
+      }
+    }
+    toast(successMessage || '已复制到剪贴板');
+    return true;
+  }
+
+  function bodyText(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.copy-btn').forEach(b => b.remove());
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;white-space:normal';
+    holder.appendChild(clone);
+    document.body.appendChild(holder);
+    const text = clone.innerText.replace(/\n{3,}/g, '\n\n').trim();
+    holder.remove();
+    return text;
+  }
+
+  function bindAnswers() {
+    $$('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const target = btn.dataset.copyTarget;
+        const qNo = target.replace(/^q/, '');
+        const q = document.querySelector(`.paper-q[data-q="${qNo}"]`);
+        if (!q) return;
+        const ok = await copyText(bodyText(q.querySelector('.q-body')), '答案已复制');
+        if (!ok) return;
+        const old = btn.textContent;
+        btn.textContent = '已复制 ✓';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = old; btn.classList.remove('copied'); }, 1600);
+      });
+    });
+
+    $('#copyAll').addEventListener('click', async () => {
+      const parts = [
+        '平行板电容器 · 数字孪生作业',
+        `姓名：${profileName()}　学号：${profileId()}`,
+        '',
+      ];
+      $$('.paper-q').forEach((q, i) => {
+        const h = q.querySelector('h3');
+        const title = h ? h.childNodes[0].textContent.trim() : `第 ${i + 1} 题`;
+        parts.push(`【第 ${i + 1} 题】${title}`, bodyText(q.querySelector('.q-body')), '');
+      });
+      const ext = $('.paper-extension');
+      if (ext) parts.push('【拓展应用】', bodyText(ext), '');
+      const ok = await copyText(parts.join('\n'), '全部答案已复制');
+      if (!ok) return;
+      const btn = $('#copyAll');
+      const old = btn.innerHTML;
+      btn.innerHTML = '已复制全部 ✓';
+      setTimeout(() => { btn.innerHTML = old; }, 1800);
+    });
+
+    $('#printSheet').addEventListener('click', () => window.print());
+    $('#printTop').addEventListener('click', () => window.print());
+  }
+
+  /* ------------------------------------------------------------------
+     12. 导航 / Toast / 动画循环 / 初始化
+  ------------------------------------------------------------------ */
+  function toast(message, type = '') {
+    const el = $('#toast');
+    if (!el) return;
+    clearTimeout(toastTimer);
+    el.textContent = message;
+    el.className = `toast show${type === 'error' ? ' error' : ''}`;
+    toastTimer = window.setTimeout(() => { el.className = 'toast'; }, 2600);
+  }
+
+  function bindNav() {
+    const links = $$('.nav-link');
+    const sections = links
+      .map(a => $(a.getAttribute('href')))
+      .filter(Boolean);
+    const onScroll = () => {
+      const y = window.scrollY + 150;
+      let active = sections[0];
+      sections.forEach(sec => { if (sec.offsetTop <= y) active = sec; });
+      links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === `#${active.id}`));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+
+  function stageLoop(now) {
+    requestAnimationFrame(stageLoop);
+    if (document.hidden || !stageVisible) return;
+    if (now - lastFrame < 32) return;
+    lastFrame = now;
+    drawStage(now);
+
+    if (state.sensor.pulse && now - lastSensorFrame > 85) {
+      lastSensorFrame = now;
+      refreshSensor({ live: true });
+    }
+  }
+
+  function initObservers() {
+    if ('IntersectionObserver' in window) {
+      const stageIO = new IntersectionObserver(entries => {
+        entries.forEach(en => { stageVisible = en.isIntersecting; });
+      }, { rootMargin: '80px' });
+      stageIO.observe($('#stageWrap'));
+    }
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (current) {
+          drawCChart(current);
+          drawInvChart(current);
+        }
+        if (currentSensor) drawSensorChart(currentSensor);
+        drawStage(performance.now());
+      }, 120);
+    });
+  }
+
+  function init() {
+    restore();
+    initProfile();
+    configureSourceRange(compute());
+    syncControls();
+    renderRecords();
+    refreshMain(false);
+    refreshSensor();
+    bindStage();
+    bindControls();
+    bindSensor();
+    bindData();
+    bindProfile();
+    bindAnswers();
+    bindNav();
+    initObservers();
+    requestAnimationFrame(stageLoop);
+    window.addEventListener('beforeunload', saveState);
+    console.info('%c平行板电容器数字孪生平台已就绪', 'color:#4fe3ff;font-weight:600');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+</script>
+</body>
+</html>
